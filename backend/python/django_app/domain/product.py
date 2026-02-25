@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from typing import Optional
 
 
@@ -12,9 +13,15 @@ class Product:
     price: float
     brand: str
     quantity: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     def to_dict(self):
-        return asdict(self)
+        d = asdict(self)
+        for k in ("created_at", "updated_at"):
+            if d.get(k) is not None:
+                d[k] = d[k].isoformat() + "Z" if d[k].tzinfo is None else d[k].isoformat()
+        return d
 
 
 def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:
@@ -56,7 +63,12 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
     return len(errors) == 0, errors
 
 
-def product_from_dict(data: dict, id: Optional[str] = None) -> Product:
+def product_from_dict(
+    data: dict,
+    id: Optional[str] = None,
+    created_at: Optional[datetime] = None,
+    updated_at: Optional[datetime] = None,
+) -> Product:
     return Product(
         id=id or str(uuid.uuid4()),
         name=(data.get("name") or "").strip(),
@@ -65,4 +77,6 @@ def product_from_dict(data: dict, id: Optional[str] = None) -> Product:
         price=float(data.get("price", 0)),
         brand=(data.get("brand") or "").strip(),
         quantity=int(data.get("quantity", 0)),
+        created_at=created_at,
+        updated_at=updated_at,
     )

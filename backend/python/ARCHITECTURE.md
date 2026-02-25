@@ -19,7 +19,13 @@ This project uses a simple hexagonal (ports & adapters) layout so HTTP is just o
 
 Domain stays independent of HTTP; only adapters know about `request` and `JsonResponse`.
 
-## Flow for Product APIs (Week 2)
+## Flow for Product APIs (Week 2 + Week 3)
 
-- **GET/POST** `/products/` → `product_list`: GET returns paginated list (query params `page`, `page_size`); POST creates a product (JSON body). Validates input and returns 400 with `error` and `details` on failure.
-- **GET/PUT/PATCH/DELETE** `/products/<id>/` → `product_detail`: get one, update, or delete. Domain holds in-memory store; all validations and business rules live in `domain/product.py` and `domain/product_service.py`.
+| Layer        | Location                    | Role |
+|-------------|-----------------------------|------|
+| Controller  | `django_app/adapters/`      | Thin HTTP layer: parses request, calls service, returns JSON. |
+| Service     | `django_app/domain/product_service.py` | Business logic and validation; uses repository for persistence. |
+| Repository  | `django_app/repository/`     | Data access: implements `ProductRepository`; Mongo implementation uses MongoEngine and MongoDB. |
+| Persistence | `django_app/repository/product_document.py` | MongoEngine document (ProductDocument) with created_at, updated_at. |
+
+- **GET/POST** `/products/` and **GET/PUT/PATCH/DELETE** `/products/<id>/`: adapter → ProductService → ProductRepository (Mongo). List is ordered by `created_at` descending. API responses include `created_at` and `updated_at` when present.

@@ -4,16 +4,26 @@ from django_app.domain.product import (
     validate_product_data,
     product_from_dict,
 )
+from django_app.repository.product_repository import ProductRepository
 
-_store: dict[str, Product] = {}
+_repo: Optional[ProductRepository] = None
 
+
+def set_repository(repository: ProductRepository) -> None:
+    global _repo
+    _repo = repository
+
+
+def _ensure_repo():
+    if _repo is None:
+        raise RuntimeError("Product repository not initialized; ensure Django app is loaded.")
 
 def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
+    _ensure_repo()
     ok, errors = validate_product_data(data, for_update=False)
     if not ok:
         return None, errors
-    product = product_from_dict(data)
-    _store[product.id] = product
+    product = _repo.create(data)
     return product, None
 
 
@@ -33,45 +43,35 @@ def create_many(items: list) -> tuple[list[Product], list[dict]]:
 
 
 def get_by_id(product_id: str) -> Optional[Product]:
-    return _store.get(product_id)
+    _ensure_repo()
+    return _repo.get_by_id(product_id)
 
 
 def list_products(page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:
-    items = list(_store.values())
-    total = len(items)
-    start = (page - 1) * page_size
-    end = start + page_size
-    if page_size <= 0:
-        page_size = total
-        end = total
-    page_items = items[start:end]
-    return page_items, total
+    _ensure_repo()
+    return _repo.list_products(page=page, page_size=page_size)
 
 
 def update(product_id: str, data: dict) -> tuple[Optional[Product], Optional[dict]]:
-    existing = _store.get(product_id)
+    _ensure_repo()
+    existing = _repo.get_by_id(product_id)
     if not existing:
         return None, {"_error": "Product not found"}
     ok, errors = validate_product_data(data, for_update=True)
     if not ok:
         return None, errors
-    updated = product_from_dict(
-        {
-            "name": data.get("name", existing.name),
-            "description": data.get("description", existing.description),
-            "category": data.get("category", existing.category),
-            "price": data.get("price", existing.price),
-            "brand": data.get("brand", existing.brand),
-            "quantity": data.get("quantity", existing.quantity),
-        },
-        id=existing.id,
-    )
-    _store[product_id] = updated
+    merged = {
+        "name": data.get("name", existing.name),
+        "description": data.get("description", existing.description),
+        "category": data.get("category", existing.category),
+        "price": data.get("price", existing.price),
+        "brand": data.get("brand", existing.brand),
+        "quantity": data.get("quantity", existing.quantity),
+    }
+    updated = _repo.update(product_id, merged)
     return updated, None
 
 
 def delete(product_id: str) -> bool:
-    if product_id in _store:
-        del _store[product_id]
-        return True
-    return False
+    _ensure_repo()
+    return _repo.delete(product_id)
