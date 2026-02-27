@@ -13,7 +13,9 @@ class ProductRepository(ABC):
         pass
 
     @abstractmethod
-    def list_products(self, page: int, page_size: int) -> tuple[list[Product], int]:
+    def list_products(
+        self, page: int, page_size: int, category_ids: list[str] | None = None
+    ) -> tuple[list[Product], int]:
         pass
 
     @abstractmethod

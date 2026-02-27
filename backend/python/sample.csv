@@ -1,0 +1,7 @@
+name,description,category,brand,price,quantity,category_id
+Widget A,Useful widget for home,Tools,Acme Corp,9.99,50,699f564b66ae87d3b4916511 
+Widget B,Industrial strength,Tools,Acme Corp,19.99,25,699f564b66ae87d3b4916512
+Organic Bananas,Fresh bananas,Produce,FarmFresh,2.49,200,699f564b66ae87d3b4916512
+Chef Knife,8 inch stainless steel,Kitchen,CookPro,45.00,30,699f564b66ae87d3b4916511
+LED Bulb Pack,4-pack soft white,Electronics,BrightHome,12.99,100,699f564b66ae87d3b4916510
+Coffee Beans,Medium roast 1lb,Food,CoffeeCo,14.99,75,699f564b66ae87d3b4916512

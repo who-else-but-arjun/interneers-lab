@@ -1,5 +1,5 @@
 from datetime import datetime
-from mongoengine import Document, StringField, FloatField, IntField, DateTimeField
+from mongoengine import Document, ObjectIdField, StringField, FloatField, IntField, DateTimeField
 
 
 class ProductDocument(Document):
@@ -7,6 +7,7 @@ class ProductDocument(Document):
     name = StringField(required=True)
     description = StringField(default="")
     category = StringField(default="")
+    category_id = ObjectIdField(default=None)
     price = FloatField(required=True)
     brand = StringField(default="")
     quantity = IntField(required=True)

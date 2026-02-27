@@ -23,7 +23,10 @@ def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
     ok, errors = validate_product_data(data, for_update=False)
     if not ok:
         return None, errors
-    product = _repo.create(data)
+    payload = dict(data)
+    if payload.get("category_id") and not isinstance(payload["category_id"], (str, type(None))):
+        payload["category_id"] = str(payload["category_id"])
+    product = _repo.create(payload)
     return product, None
 
 
@@ -47,9 +50,11 @@ def get_by_id(product_id: str) -> Optional[Product]:
     return _repo.get_by_id(product_id)
 
 
-def list_products(page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:
+def list_products(
+    page: int = 1, page_size: int = 10, category_ids: list[str] | None = None
+) -> tuple[list[Product], int]:
     _ensure_repo()
-    return _repo.list_products(page=page, page_size=page_size)
+    return _repo.list_products(page=page, page_size=page_size, category_ids=category_ids)
 
 
 def update(product_id: str, data: dict) -> tuple[Optional[Product], Optional[dict]]:
@@ -64,6 +69,7 @@ def update(product_id: str, data: dict) -> tuple[Optional[Product], Optional[dic
         "name": data.get("name", existing.name),
         "description": data.get("description", existing.description),
         "category": data.get("category", existing.category),
+        "category_id": data.get("category_id") if "category_id" in data else existing.category_id,
         "price": data.get("price", existing.price),
         "brand": data.get("brand", existing.brand),
         "quantity": data.get("quantity", existing.quantity),

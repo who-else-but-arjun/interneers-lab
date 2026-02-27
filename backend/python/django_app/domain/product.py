@@ -13,6 +13,7 @@ class Product:
     price: float
     brand: str
     quantity: int
+    category_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -60,20 +61,35 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
     if not for_update and "quantity" not in data:
         errors["quantity"] = "Quantity is required"
 
+    if not for_update:
+        brand = (data.get("brand") or "").strip()
+        if not brand:
+            errors["brand"] = "Brand is required and cannot be empty"
+    else:
+        if "brand" in data:
+            brand = (data.get("brand") or "").strip()
+            if not brand:
+                errors["brand"] = "Brand cannot be empty"
+
     return len(errors) == 0, errors
 
 
 def product_from_dict(
     data: dict,
     id: Optional[str] = None,
+    category_id: Optional[str] = None,
     created_at: Optional[datetime] = None,
     updated_at: Optional[datetime] = None,
 ) -> Product:
+    cid = category_id
+    if cid is None and data.get("category_id") is not None:
+        cid = str(data["category_id"])
     return Product(
         id=id or str(uuid.uuid4()),
         name=(data.get("name") or "").strip(),
         description=(data.get("description") or "").strip(),
         category=(data.get("category") or "").strip(),
+        category_id=cid,
         price=float(data.get("price", 0)),
         brand=(data.get("brand") or "").strip(),
         quantity=int(data.get("quantity", 0)),

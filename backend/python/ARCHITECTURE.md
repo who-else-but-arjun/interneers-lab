@@ -28,4 +28,6 @@ Domain stays independent of HTTP; only adapters know about `request` and `JsonRe
 | Repository  | `django_app/repository/`     | Data access: implements `ProductRepository`; Mongo implementation uses MongoEngine and MongoDB. |
 | Persistence | `django_app/repository/product_document.py` | MongoEngine document (ProductDocument) with created_at, updated_at. |
 
-- **GET/POST** `/products/` and **GET/PUT/PATCH/DELETE** `/products/<id>/`: adapter → ProductService → ProductRepository (Mongo). List is ordered by `created_at` descending. API responses include `created_at` and `updated_at` when present.
+- **GET/POST** `/products/` and **GET/PUT/PATCH/DELETE** `/products/<id>/`: adapter → ProductService → ProductRepository (Mongo). List supports `?category_ids=id1,id2` filter. API responses include `created_at`, `updated_at`, `category_id`.
+- **ProductCategory** (Week 4): `ProductCategoryDocument` (title, description). ProductDocument has optional `category_id` (ObjectId reference). ProductCategoryService + ProductCategoryRepository. CRUD at `/categories/`, products by category at `/categories/<id>/products/`, add/remove product from category via POST/DELETE `/products/<id>/category/`.
+- **Bulk CSV**: POST `/products/bulk/csv/` with multipart form file. **Seed**: On startup, creates Food, Kitchen Essentials, Electronics categories if none exist. **Migration**: Products without `category_id` are assigned to "Uncategorized" category. **Brand** is now required for product create.

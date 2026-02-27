@@ -18,6 +18,7 @@ def _doc_to_product(doc: ProductDocument) -> Product:
             "quantity": doc.quantity,
         },
         id=str(doc.id),
+        category_id=str(doc.category_id) if doc.category_id else None,
         created_at=doc.created_at,
         updated_at=doc.updated_at,
     )
@@ -25,10 +26,17 @@ def _doc_to_product(doc: ProductDocument) -> Product:
 
 class MongoProductRepository(ProductRepository):
     def create(self, data: dict) -> Product:
+        cid = None
+        if data.get("category_id"):
+            try:
+                cid = ObjectId(data["category_id"])
+            except (TypeError, ValueError):
+                pass
         doc = ProductDocument(
             name=(data.get("name") or "").strip(),
             description=(data.get("description") or "").strip(),
             category=(data.get("category") or "").strip(),
+            category_id=cid,
             price=float(data.get("price", 0)),
             brand=(data.get("brand") or "").strip(),
             quantity=int(data.get("quantity", 0)),
@@ -44,8 +52,16 @@ class MongoProductRepository(ProductRepository):
         except (DoesNotExist, TypeError, ValueError):
             return None
 
-    def list_products(self, page: int, page_size: int) -> tuple[list[Product], int]:
+    def list_products(
+        self, page: int, page_size: int, category_ids: list[str] | None = None
+    ) -> tuple[list[Product], int]:
         qs = ProductDocument.objects.order_by("-created_at")
+        if category_ids:
+            try:
+                oids = [ObjectId(cid) for cid in category_ids]
+                qs = qs.filter(category_id__in=oids)
+            except (TypeError, ValueError):
+                pass
         total = qs.count()
         start = (page - 1) * page_size
         if page_size <= 0:
@@ -64,6 +80,12 @@ class MongoProductRepository(ProductRepository):
             doc.description = (data["description"] or "").strip()
         if "category" in data:
             doc.category = (data["category"] or "").strip()
+        if "category_id" in data:
+            val = data["category_id"]
+            try:
+                doc.category_id = ObjectId(val) if val else None
+            except (TypeError, ValueError):
+                doc.category_id = None
         if "price" in data:
             doc.price = float(data["price"])
         if "brand" in data:
