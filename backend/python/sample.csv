@@ -1,7 +1,22 @@
-name,description,category,brand,price,quantity,category_id
-Widget A,Useful widget for home,Tools,Acme Corp,9.99,50,699f564b66ae87d3b4916511 
-Widget B,Industrial strength,Tools,Acme Corp,19.99,25,699f564b66ae87d3b4916512
-Organic Bananas,Fresh bananas,Produce,FarmFresh,2.49,200,699f564b66ae87d3b4916512
-Chef Knife,8 inch stainless steel,Kitchen,CookPro,45.00,30,699f564b66ae87d3b4916511
-LED Bulb Pack,4-pack soft white,Electronics,BrightHome,12.99,100,699f564b66ae87d3b4916510
-Coffee Beans,Medium roast 1lb,Food,CoffeeCo,14.99,75,699f564b66ae87d3b4916512
+name,description,category,brand,price,quantity
+Widget A,Useful widget for home,Tools,Acme Corp,9.99,50
+Widget B,Industrial strength,Tools,Acme Corp,19.99,25
+Organic Bananas,Fresh bananas,Produce,FarmFresh,2.49,200
+Chef Knife,8 inch stainless steel,Kitchen,CookPro,45,30
+LED Bulb Pack,4-pack soft white,Electronics,BrightHome,12.99,100
+Coffee Beans,Medium roast 1lb,Food,CoffeeCo,14.99,75
+Wireless Mouse,Wireless Mouse,Peripherals,Logitech,1299,45
+Mechanical Keyboard,Mechanical Keyboard,Peripherals,Corsair,7499,3
+USB-C Hub,USB-C Hub,Accessories,Anker,3299,28
+Monitor Stand,Monitor Stand,Furniture,Rain Design,4599,2
+Webcam HD,Webcam HD,Peripherals,Logitech,5999,15
+Laptop Sleeve,Laptop Sleeve,Accessories,Incase,2499,5
+Desk Lamp,Desk Lamp,Furniture,BenQ,8999,12
+Ethernet Cable 5m,Ethernet Cable 5m,Accessories,Belkin,599,1
+Noise Cancelling Headphones,Noise Cancelling Headphones,Audio,Sony,24999,8
+Portable Speaker,Portable Speaker,Audio,JBL,4999,22
+Graphics Tablet,Graphics Tablet,Peripherals,Wacom,12999,4
+Cable Management Kit,Cable Management Kit,Accessories,Anker,899,50
+Standing Desk Mat,Standing Desk Mat,Furniture,Rain Design,3999,0
+Wireless Charger,Wireless Charger,Accessories,Anker,1999,35
+Studio Microphone,Studio Microphone,Audio,Blue,9999,6

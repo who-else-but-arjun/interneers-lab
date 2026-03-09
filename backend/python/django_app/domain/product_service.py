@@ -18,14 +18,49 @@ def _ensure_repo():
     if _repo is None:
         raise RuntimeError("Product repository not initialized; ensure Django app is loaded.")
 
+
 def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
+    """
+    Create a product, or if one with the same logical identity already exists,
+    increment its quantity instead of inserting a duplicate row.
+    """
     _ensure_repo()
     ok, errors = validate_product_data(data, for_update=False)
     if not ok:
         return None, errors
+
     payload = dict(data)
     if payload.get("category_id") and not isinstance(payload["category_id"], (str, type(None))):
         payload["category_id"] = str(payload["category_id"])
+
+    name = (payload.get("name") or "").strip()
+    brand = (payload.get("brand") or "").strip()
+    category = (payload.get("category") or "").strip()
+
+    existing: Optional[Product] = None
+    if name and brand:
+        existing = _repo.find_by_identity(name=name, brand=brand, category=category)
+
+    if existing:
+        # Safely determine increment for quantity; default to 0 if not provided.
+        increment_raw = payload.get("quantity", 0)
+        try:
+            increment = int(increment_raw)
+        except (TypeError, ValueError):
+            increment = 0
+        new_quantity = max(0, (existing.quantity or 0) + increment)
+        merged = {
+            "name": existing.name,
+            "description": payload.get("description", existing.description),
+            "category": category or existing.category,
+            "category_id": payload.get("category_id") or existing.category_id,
+            "price": payload.get("price", existing.price),
+            "brand": existing.brand,
+            "quantity": new_quantity,
+        }
+        updated = _repo.update(existing.id, merged)
+        return updated, None
+
     product = _repo.create(payload)
     return product, None
 
