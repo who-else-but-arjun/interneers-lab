@@ -10,5 +10,25 @@ services:
     volumes:
       - mongodb_data:/data/db
 
+  app:
+    build:
+      context: ..
+      dockerfile: python/Dockerfile.dev
+    container_name: interneers_lab_2026_app
+    ports:
+      - '8000:8001'
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_USER: root
+      MONGO_PASS: example
+      MONGO_DB: inventory
+      MONGO_AUTH_SOURCE: admin
+    volumes:
+      - ..:/workspace/backend
+    depends_on:
+      - mongodb
+    command: python manage.py runserver 0.0.0.0:8001
+
 volumes:
   mongodb_data:
