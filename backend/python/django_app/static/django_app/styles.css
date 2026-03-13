@@ -97,7 +97,7 @@ a{
 .main{
   max-width:1440px;
   margin:0 auto;
-  padding:24px 32px;
+  padding:24px 32px 100px;
 }
 
 .space-y>*+*{
@@ -323,9 +323,16 @@ a{
   width:100%;
 }
 
+.btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 /* Table */
 .table-wrap{
   overflow-x:auto;
+  min-height: 400px;
 }
 
 table{
@@ -566,10 +573,15 @@ input[type="file"]::file-selector-button{
 }
 
 .pagination {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--card);
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .pagination .btn {
