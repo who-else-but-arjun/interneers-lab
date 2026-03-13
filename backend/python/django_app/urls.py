@@ -13,8 +13,15 @@ from django_app.adapters.category_views import (
     category_detail,
     category_products,
 )
+from django_app.adapters.ui_views import inventory_dashboard, ui_product_delete, ui_export_products
 
 urlpatterns = [
+    # HTML UI
+    path("", inventory_dashboard, name="inventory_dashboard"),
+    path("ui/products/<str:product_id>/delete/", ui_product_delete, name="ui_product_delete"),
+    path("ui/products/export/", ui_export_products, name="ui_export_products"),
+
+    # JSON APIs
     path("admin/", admin.site.urls),
     path("hello/", hello_name),
     path("products/", product_list),

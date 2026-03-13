@@ -45,6 +45,25 @@ class MongoProductRepository(ProductRepository):
         doc.reload()
         return _doc_to_product(doc)
 
+    def find_by_identity(self, name: str, brand: str, category: str) -> Product | None:
+        """
+        Look up an existing product by a stable identity:
+        - name (case-sensitive as stored)
+        - brand
+        - optional category label
+        """
+        qs = ProductDocument.objects(
+            name=(name or "").strip(),
+            brand=(brand or "").strip(),
+        )
+        cat = (category or "").strip()
+        if cat:
+            qs = qs.filter(category=cat)
+        doc = qs.first()
+        if not doc:
+            return None
+        return _doc_to_product(doc)
+
     def get_by_id(self, product_id: str) -> Product | None:
         try:
             doc = ProductDocument.objects.get(id=ObjectId(product_id))

@@ -9,6 +9,14 @@ class ProductRepository(ABC):
         pass
 
     @abstractmethod
+    def find_by_identity(self, name: str, brand: str, category: str) -> Optional[Product]:
+        """
+        Find a product that should be considered the same logical item for upserts,
+        typically by (name, brand, optional category).
+        """
+        pass
+
+    @abstractmethod
     def get_by_id(self, product_id: str) -> Optional[Product]:
         pass
 
