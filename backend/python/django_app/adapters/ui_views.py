@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, validator
 import google.generativeai as genai
 import os
 
-GEMINI_API_KEY = "AIzaSyDQJRDSgJllCXNp3QPvWlTkcVvetw1DDnI"
+GEMINI_API_KEY = "AIzaSyBPPxhVevmpHfJoHvG3CCKCncCnnH1k6X4"
 genai.configure(api_key=GEMINI_API_KEY)
 
 

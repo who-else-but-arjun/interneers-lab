@@ -20,18 +20,24 @@ from django_app.adapters.ui_views import (
     ai_scenario_dashboard,
     ai_generate_products,
 )
+from django_app.adapters.search_views import (
+    semantic_search_products,
+    find_similar_products,
+    hybrid_search,
+)
 
 urlpatterns = [
-    # HTML UI
     path("", inventory_dashboard, name="inventory_dashboard"),
     path("ui/products/<str:product_id>/delete/", ui_product_delete, name="ui_product_delete"),
     path("ui/products/export/", ui_export_products, name="ui_export_products"),
     
-    # AI Scenario Selector (Week 6 Advanced)
     path("ai/scenarios/", ai_scenario_dashboard, name="ai_scenario_dashboard"),
     path("ai/generate/", ai_generate_products, name="ai_generate_products"),
 
-    # JSON APIs
+    path("search/semantic/", semantic_search_products, name="semantic_search"),
+    path("search/similar/", find_similar_products, name="find_similar"),
+    path("search/hybrid/", hybrid_search, name="hybrid_search"),
+
     path("admin/", admin.site.urls),
     path("hello/", hello_name),
     path("products/", product_list),
