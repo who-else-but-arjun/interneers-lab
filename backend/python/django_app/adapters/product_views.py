@@ -37,9 +37,9 @@ def product_list(request):
     if request.method == "GET":
         try:
             page = max(1, int(request.GET.get("page", 1)))
-            page_size = min(100, max(1, int(request.GET.get("page_size", 10))))
+            page_size = min(100, max(1, int(request.GET.get("page_size", 5))))
         except (TypeError, ValueError):
-            page, page_size = 1, 10
+            page, page_size = 1, 5
         category_ids = _parse_category_ids(request.GET.get("category_ids", ""))
         items, total = product_service.list_products(
             page=page, page_size=page_size, category_ids=category_ids

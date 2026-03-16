@@ -8,7 +8,7 @@ from typing import Optional, List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-GEMINI_API_KEY = "AIzaSyDQJRDSgJllCXNp3QPvWlTkcVvetw1DDnI"
+GEMINI_API_KEY = "API_KEY"
 
 genai.configure(api_key=GEMINI_API_KEY)
 

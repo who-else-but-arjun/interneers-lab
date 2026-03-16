@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, validator
 import google.generativeai as genai
 import os
 
-GEMINI_API_KEY = "AIzaSyBPPxhVevmpHfJoHvG3CCKCncCnnH1k6X4"
+GEMINI_API_KEY = "API_KEY"
 genai.configure(api_key=GEMINI_API_KEY)
 
 
@@ -40,16 +40,6 @@ class ProductModel(BaseModel):
         if v < 0:
             raise ValueError('Quantity must be 0 or greater')
         return int(v)
-
-
-SCENARIO_PROMPTS = {
-    "Holiday Rush": "Generate popular holiday gift items like toys, games, and festive products with HIGH stock levels (200-500 units) to prepare for holiday demand",
-    "Back to School": "Generate educational supplies, learning toys, school accessories with MODERATE stock levels (100-300 units)",
-    "Summer Sale": "Generate outdoor toys, water games, sports equipment with HIGH stock levels (150-400 units) for summer season",
-    "Clearance": "Generate various toy categories with LOW stock levels (10-50 units) as clearance items",
-    "New Arrivals": "Generate trending new toys, tech gadgets for kids, innovative games with MODERATE stock levels (80-200 units)",
-    "Standard Inventory": "Generate a balanced mix of toy categories with standard stock levels (50-200 units)"
-}
 
 
 @csrf_protect
@@ -278,53 +268,118 @@ def ai_scenario_dashboard(request):
 @require_http_methods(["POST"])
 def ai_generate_products(request):
     """
-    API endpoint to generate products using Gemini AI based on custom user scenario text.
+    Smart AI Chatbot endpoint:
+    - Detects user intent: generate products or chat
+    - For product generation: creates relevant products based on description
+    - For chat: responds conversationally
     """
     try:
         body = json.loads(request.body)
-        scenario_text = body.get("scenario_text", "").strip()
-        count = min(int(body.get("count", 10)), 50)
+        user_message = body.get("scenario_text", "").strip()
+        max_count = min(int(body.get("count", 10)), 50)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
     
-    if not scenario_text:
-        return JsonResponse({"success": False, "error": "Please describe what products you want to generate"}, status=400)
+    if not user_message:
+        return JsonResponse({"success": False, "error": "Please enter a message"}, status=400)
     
     try:
-        raw_response = _generate_products_with_custom_scenario(scenario_text, count)
-        valid_products, invalid_count = _clean_and_validate_products(raw_response)
+        # Use LLM to detect intent and either generate products or chat
+        ai_response = _process_ai_chat(user_message, max_count)
         
-        return JsonResponse({
-            "success": True,
-            "scenario_text": scenario_text,
-            "requested_count": count,
-            "generated_count": len(valid_products),
-            "saved_count": 0,
-            "invalid_count": invalid_count,
-            "products": valid_products
-        })
+        intent = ai_response.get("intent", "chat")
+        
+        if intent == "product_generation":
+            products = ai_response.get("products", [])
+            valid_products, invalid_count = _validate_products_list(products)
+            
+            return JsonResponse({
+                "success": True,
+                "intent": "product_generation",
+                "scenario_text": user_message,
+                "requested_count": max_count,
+                "generated_count": len(valid_products),
+                "saved_count": 0,
+                "invalid_count": invalid_count,
+                "products": valid_products,
+                "chat_message": ai_response.get("message", f"I have generated {len(valid_products)} products for you!")
+            })
+        else:
+            # Chat mode - no products, just conversation
+            return JsonResponse({
+                "success": True,
+                "intent": "chat",
+                "scenario_text": user_message,
+                "chat_message": ai_response.get("message", "I'm here to help with your inventory!"),
+                "products": [],
+                "generated_count": 0,
+                "saved_count": 0,
+                "invalid_count": 0
+            })
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-def _generate_products_with_custom_scenario(scenario_text, count=10):
-    """Generate products using Gemini API based on custom user scenario text."""
+def _process_ai_chat(user_message, max_count=10):
+    """
+    Process user message through LLM to detect intent and respond accordingly.
+    Returns dict with 'intent' and either 'products' or 'message'.
+    """
     model = genai.GenerativeModel("gemini-2.5-flash")
     
-    prompt = f"""Generate {count} products for a toy store inventory based on this request:
-"{scenario_text}"
+    prompt = f'''You are an intelligent inventory management assistant. Analyze the user's message and respond appropriately.
 
-Return ONLY a valid JSON array with no markdown formatting, no explanation text.
+User message: "{user_message}"
 
-Each product must have these exact fields:
+First, determine if the user wants to:
+1. Generate/create/add products to inventory (product_generation intent)
+2. Just chat, ask questions, get help, or have a conversation (chat intent)
+
+Examples of product_generation intent:
+- "Create 20 electronics items"
+- "Add some office supplies"
+- "Generate furniture products"
+- "I need 15 sports items"
+- "Make beauty products"
+- "Add laptops and phones"
+
+Examples of chat intent:
+- "Hello"
+- "How are you?"
+- "What can you do?"
+- "Help me understand inventory"
+- "What's the weather?"
+- "Tell me a joke"
+
+Respond with ONLY a valid JSON object in this exact format:
+{{
+    "intent": "product_generation" or "chat",
+    "message": "A friendly response message to show in chat",
+    "products": [array of products if intent is product_generation, otherwise empty array]
+}}
+
+Each product in the array must have these exact fields:
 - name: string (product name)
 - description: string (brief description)
 - category: string (product category)
-- price: float (price in USD, between 5.0 and 200.0)
-- brand: string (brand name)
-- quantity: integer (stock quantity)
+- price: float (price in INR - be realistic and relevant to the product type)
+- brand: string (brand name - be realistic)
+- quantity: integer (stock quantity - realistic based on product type)
 
-Output format: [{{"name": "...", "description": "...", "category": "...", "price": 29.99, "brand": "...", "quantity": 100}}, ...]"""
+For product generation:
+- Analyze the user's request to understand what TYPE of products they want
+- Generate up to {max_count} relevant, realistic products matching their request
+- Price products realistically for the Indian market (INR)
+- Use realistic brand names appropriate to the product category
+- Set reasonable quantities based on typical inventory needs
+
+For chat responses:
+- Be friendly and helpful
+- If they ask about inventory management, explain what you can do
+- If they want to generate products, guide them on how to ask
+- Keep responses concise but informative
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting, no extra text.'''
     
     response = model.generate_content(
         prompt,
@@ -334,12 +389,8 @@ Output format: [{{"name": "...", "description": "...", "category": "...", "price
         )
     )
     
-    return response.text
-
-
-def _clean_and_validate_products(json_text):
-    """Clean JSON response and validate products using Pydantic."""
-    text = json_text.strip()
+    # Parse the response
+    text = response.text.strip()
     if text.startswith("```json"):
         text = text[7:]
     elif text.startswith("```"):
@@ -349,14 +400,25 @@ def _clean_and_validate_products(json_text):
     text = text.strip()
     
     try:
-        raw_products = json.loads(text)
+        return json.loads(text)
     except json.JSONDecodeError:
-        return [], 0
-    
+        # Fallback: treat as chat response if JSON parsing fails
+        return {
+            "intent": "chat",
+            "message": "I'm not sure I understood that. You can ask me to generate products by saying something like 'Create 20 electronics items' or just chat with me!",
+            "products": []
+        }
+
+
+def _validate_products_list(products_list):
+    """Validate a list of product dictionaries using Pydantic."""
     valid_products = []
     invalid_count = 0
     
-    for prod_data in raw_products:
+    if not isinstance(products_list, list):
+        return [], 0
+    
+    for prod_data in products_list:
         try:
             prod_data['created_at'] = datetime.utcnow().isoformat()
             prod_data['updated_at'] = datetime.utcnow().isoformat()

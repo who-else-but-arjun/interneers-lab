@@ -22,6 +22,15 @@
                      padding: 6px 12px; background: #5c2145; color: white; border: none; 
                      border-radius: 4px; font-size: 12px; cursor: pointer;">Search</button>
     </div>
+    <div style="display: flex; flex-direction: column; gap: 4px; width: 160px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: #6c757d; font-weight: 500;">Similarity Threshold</span>
+        <span id="thresholdValue" style="font-size: 11px; color: #5c2145; font-weight: 600;">30%</span>
+      </div>
+      <input type="range" id="similarityThreshold" min="10" max="90" value="30" 
+             style="width: 100%; height: 6px; cursor: pointer; accent-color: #5c2145;"
+             oninput="updateThresholdDisplay(this.value)" />
+    </div>
   </div>
 </div>
 
@@ -260,7 +269,7 @@ let showAllBrands = false;
 let chartInstance = null;
 let currentChart = 'stock';
 let currentPage = 1;
-let pageSize = 10;
+let pageSize = 5;
 
 let products = [];
 
@@ -804,18 +813,8 @@ async function sendAiMessage() {
   const count = parseInt(countInput.value) || 10;
   
   if (!text) { 
-    addAiMessage('Please describe what products to generate!', false); 
+    addAiMessage('Please enter a message!', false); 
     return; 
-  }
-  
-  const productKeywords = ['create', 'make', 'generate', 'add', 'product', 'toy', 'game', 'item', 'inventory', 'stock', 'toys', 'games', 'kids', 'children', 'educational', 'outdoor', 'indoor', 'sports', 'puzzle', 'blocks', 'doll', 'car', 'set', 'kit'];
-  const hasProductIntent = productKeywords.some(kw => text.toLowerCase().includes(kw.toLowerCase()));
-  
-  if (!hasProductIntent) {
-    addAiMessage(text, true);
-    addAiMessage('I can help you generate products for your inventory! Try something like:<br>• "Create 15 outdoor summer toys"<br>• "Add educational toys for 5-year-olds"<br>• "Generate sports equipment for kids"', false);
-    input.value = '';
-    return;
   }
   
   addAiMessage(text, true);
@@ -856,12 +855,29 @@ async function sendAiMessage() {
     const data = await response.json();
     console.log('Response data:', data);
     
-    if (response.ok && data.success && data.products && data.products.length > 0) {
-      pendingAiProducts = (data.products || []).map((p, idx) => ({ ...p, _id: idx, _approved: null }));
-      addAiMessage('I have generated <strong>' + data.generated_count + '</strong> products for you! Please review them below.', false);
-      showAiPreview(data);
-    } else if (response.ok && data.success && (!data.products || data.products.length === 0)) {
-      addAiMessage('I could not generate products from that description. The AI returned no valid products. Please try being more specific.', false);
+    if (response.ok && data.success) {
+      if (data.intent === 'chat') {
+        // Pure chat response - no products
+        addAiMessage(data.chat_message || 'I\'m here to help!', false);
+      } else if (data.intent === 'product_generation') {
+        // Product generation response
+        if (data.products && data.products.length > 0) {
+          pendingAiProducts = (data.products || []).map((p, idx) => ({ ...p, _id: idx, _approved: null }));
+          addAiMessage(data.chat_message || 'I have generated <strong>' + data.generated_count + '</strong> products for you! Please review them below.', false);
+          showAiPreview(data);
+        } else {
+          addAiMessage(data.chat_message || 'I understood you want products, but could not generate any. Please try a more specific description.', false);
+        }
+      } else {
+        // Fallback for backward compatibility
+        if (data.products && data.products.length > 0) {
+          pendingAiProducts = (data.products || []).map((p, idx) => ({ ...p, _id: idx, _approved: null }));
+          addAiMessage('I have generated <strong>' + data.generated_count + '</strong> products for you! Please review them below.', false);
+          showAiPreview(data);
+        } else {
+          addAiMessage(data.chat_message || data.error || 'No products generated.', false);
+        }
+      }
     } else {
       addAiMessage('Error: ' + (data.error || 'Unknown error'), false);
     }
@@ -874,6 +890,15 @@ async function sendAiMessage() {
     loadingIcon.style.display = 'none';
     hideAiLoadingMessage();
   }
+}
+
+function updateThresholdDisplay(value) {
+  document.getElementById('thresholdValue').textContent = value + '%';
+}
+
+function getSimilarityThreshold() {
+  const slider = document.getElementById('similarityThreshold');
+  return slider ? parseInt(slider.value) / 100 : 0.3;
 }
 
 function showAiPreview(data) {
@@ -1009,7 +1034,7 @@ function showAiResults(data) {
     html += '<div class="table-wrap"><table class="table" style="font-size:12px;"><thead><tr><th>Name</th><th>Brand</th><th>Category</th><th style="text-align:right;">Price</th><th style="text-align:right;">Qty</th></tr></thead><tbody>';
     for (let i = 0; i < data.products.length; i++) {
       const p = data.products[i];
-      html += '<tr><td><strong>' + p.name + '</strong></td><td>' + p.brand + '</td><td><span class="cat-badge">' + p.category + '</span></td><td style="text-align:right;">₹' + p.price.toFixed(2) + '</td><td style="text-align:right;">' + p.quantity + '</td></tr>';
+      html += '<tr><td><strong>' + p.name + '</strong></td><td>' + p.brand + '</td><td><span style="background:#e9ecef;padding:2px 6px;border-radius:4px;font-size:11px;">' + p.category + '</span></td><td style="text-align:right;">₹' + p.price.toFixed(2) + '</td><td style="text-align:right;">' + p.quantity + '</td></tr>';
     }
     html += '</tbody></table></div>';
   }
@@ -1027,49 +1052,49 @@ function adjustCount(delta) {
 }
 
 function validateCount(input) {
-let value = parseInt(input.value) || 10;
-if (value < 1) value = 1;
-if (value > 50) value = 50;
-input.value = value;
+  let value = parseInt(input.value) || 10;
+  if (value < 1) value = 1;
+  if (value > 50) value = 50;
+  input.value = value;
 }
 
 let currentSemanticResults = [];
 
 async function performSemanticSearch() {
-const query = document.getElementById('semanticSearchInput').value.trim();
-if (!query) return;
+  const query = document.getElementById('semanticSearchInput').value.trim();
+  if (!query) return;
   
-const btn = document.querySelector('#semanticSearchInput + button');
-btn.disabled = true;
-btn.textContent = 'Searching...';
+  const btn = document.querySelector('#semanticSearchInput + button');
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
 
-try {
-  const csrfToken = getCookie('csrftoken');
-  const response = await fetch('/search/semantic/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken
-    },
-    body: JSON.stringify({ query: query, top_k: 10 })
-  });
-  
-  if (response.ok) {
-    const data = await response.json();
-    displaySemanticResults(data);
-  } else {
-    console.error('Semantic search failed:', response.status);
+  try {
+    const csrfToken = getCookie('csrftoken');
+    const response = await fetch('/search/semantic/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ query: query, top_k: 10, similarity_threshold: getSimilarityThreshold() })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      displaySemanticResults(data);
+    } else {
+      console.error('Semantic search failed:', response.status);
+    }
+  } catch (e) {
+    console.error('Semantic search error:', e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
   }
-} catch (e) {
-  console.error('Semantic search error:', e);
-} finally {
-  btn.disabled = false;
-  btn.textContent = 'Search';
-}
 }
 
 function displaySemanticResults(data) {
-  const SIMILARITY_THRESHOLD = 0.3;
+  const SIMILARITY_THRESHOLD = getSimilarityThreshold();
   
   const allResults = data.results || [];
   const filteredResults = allResults.filter(r => r.similarity_score >= SIMILARITY_THRESHOLD);
