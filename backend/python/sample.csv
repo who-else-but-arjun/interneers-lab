@@ -1,22 +1,51 @@
-name,description,category,brand,price,quantity
-Widget A,Useful widget for home,Tools,Acme Corp,9.99,50
-Widget B,Industrial strength,Tools,Acme Corp,19.99,25
-Organic Bananas,Fresh bananas,Produce,FarmFresh,2.49,200
-Chef Knife,8 inch stainless steel,Kitchen,CookPro,45,30
-LED Bulb Pack,4-pack soft white,Electronics,BrightHome,12.99,100
-Coffee Beans,Medium roast 1lb,Food,CoffeeCo,14.99,75
-Wireless Mouse,Wireless Mouse,Peripherals,Logitech,1299,45
-Mechanical Keyboard,Mechanical Keyboard,Peripherals,Corsair,7499,3
-USB-C Hub,USB-C Hub,Accessories,Anker,3299,28
-Monitor Stand,Monitor Stand,Furniture,Rain Design,4599,2
-Webcam HD,Webcam HD,Peripherals,Logitech,5999,15
-Laptop Sleeve,Laptop Sleeve,Accessories,Incase,2499,5
-Desk Lamp,Desk Lamp,Furniture,BenQ,8999,12
-Ethernet Cable 5m,Ethernet Cable 5m,Accessories,Belkin,599,1
-Noise Cancelling Headphones,Noise Cancelling Headphones,Audio,Sony,24999,8
-Portable Speaker,Portable Speaker,Audio,JBL,4999,22
-Graphics Tablet,Graphics Tablet,Peripherals,Wacom,12999,4
-Cable Management Kit,Cable Management Kit,Accessories,Anker,899,50
-Standing Desk Mat,Standing Desk Mat,Furniture,Rain Design,3999,0
-Wireless Charger,Wireless Charger,Accessories,Anker,1999,35
-Studio Microphone,Studio Microphone,Audio,Blue,9999,6
+Name,Brand,Category,Description,Price,Quantity,Warranty_Period,Return_Window,Refund_Policy,Vendor_FAQ_Link
+"ESP8266 NodeMCU Development Board","Espressif","Microcontrollers","Wi-Fi enabled microcontroller for IoT projects, smaller and more affordable than ESP32.",300,80,"6 months","7 days","Exchange only",""
+"Lithium Polymer (LiPo) Battery (7.4V 1500mAh)","Turnigy","Power Supplies","High-density power source for drones, RC cars, and advanced robotics.",950,25,"3 months","7 days","Exchange only",""
+"Logic Level Shifter (Bi-directional)","SparkFun","Electronic Components","Module to convert voltage levels between different microcontrollers (e.g., 3.3V to 5V).",150,60,"6 months","7 days","Exchange only",""
+"RFID RC522 Module Kit","NXP","Sensors","RFID reader/writer module with keyfob and card for access control and identification.",400,35,"1 year","15 days","Full refund within 15 days",""
+"OLED Display (0.96 inch, I2C)","Generic","Displays","Small monochrome OLED display for compact information display.",350,45,"6 months","7 days","Exchange only",""
+"Micro SD Card (32GB, Class 10)","SanDisk","Storage","High-speed storage for Raspberry Pi and other embedded systems.",450,60,"5 years","30 days","Full refund within 30 days","https://www.westerndigital.com/support/warranty"
+"Camera Module for Raspberry Pi (5MP)","Raspberry Pi Foundation","Accessories","Official Raspberry Pi camera module for vision projects.",2000,20,"1 year","15 days","Full refund within 15 days","https://www.raspberrypi.org/documentation/faqs/"
+"LiPo Charger (B3 Pro Compact)","IMAX","Power Supplies","Compact balance charger for 2S and 3S LiPo batteries.",900,30,"1 year","15 days","Full refund within 15 days",""
+"Robot Arm Kit (4-DOF)","Generic","Robotics Kits","Acrylic 4-degree-of-freedom robot arm kit with servo motors.",2500,15,"6 months","15 days","Exchange only",""
+"DRV8825 Stepper Motor Driver","Pololu","Motor Drivers","High-current stepper motor driver for precise motor control.",280,55,"6 months","7 days","Full refund within 7 days",""
+"Robotics Chassis Kit (2WD Smart Car)","Generic","Robotics Kits","Complete chassis kit for building a two-wheel drive smart robot car.",1200,40,"6 months","15 days","Exchange only",""
+"Gesture Sensor (APDS-9960)","Broadcom","Sensors","Advanced gesture, proximity, and color sensor for interactive projects.",600,20,"1 year","15 days","Full refund within 15 days",""
+"IR Remote Control Kit","Generic","Sensors","Infrared transmitter and receiver module for remote control applications.",250,50,"6 months","7 days","Exchange only",""
+"Capacitor Assortment Kit (Electrolytic & Ceramic)","Generic","Electronic Components","Selection of various capacitor types and values for electronics projects.",300,70,"No warranty","3 days","Exchange only",""
+"Resistor Assortment Kit (1/4W, various values)","Generic","Electronic Components","Box of common resistor values for circuit building.",200,100,"No warranty","3 days","Exchange only",""
+"LED Assortment Kit (5mm, various colors)","Generic","Electronic Components","Pack of 100 LEDs in red, green, blue, yellow, and white for indicator lights.",150,150,"No warranty","3 days","Exchange only",""
+"Multimeter (Digital)","Fluke","Tools","Essential tool for measuring voltage, current, and resistance in electronic circuits.",600,30,"2 years","30 days","Full refund within 30 days","https://www.fluke.com/en-in/support/warranty"
+"L298N Motor Driver Module","STMicroelectronics","Motor Drivers","Dual H-bridge motor driver for controlling DC motors and stepper motors.",350,60,"6 months","7 days","Exchange only",""
+"Ultrasonic Sensor (HC-SR04)","Generic","Sensors","Distance measuring sensor, essential for obstacle avoidance in robotics.",200,90,"6 months","7 days","Full refund within 7 days",""
+"DC Gear Motor (150 RPM)","Generic","Robotics Components","Low-speed, high-torque DC motor with gearbox, suitable for robot wheels.",220,80,"3 months","7 days","Full refund within 7 days",""
+"Lithium-ion Battery (18650, 3.7V 2200mAh)","Panasonic","Power Supplies","Rechargeable battery commonly used in portable electronics and robotics projects.",280,40,"3 months","7 days","Exchange only",""
+"Servo Motor (SG90)","TowerPro","Robotics Components","Miniature servo motor, widely used in small robots and RC models.",180,120,"3 months","7 days","Full refund within 7 days",""
+"ESP32 Development Board","Espressif","Microcontrollers","Low-cost, low-power system on a chip with integrated Wi-Fi and Bluetooth, for IoT applications.",450,70,"6 months","7 days","Exchange only",""
+"Jumper Wires Assortment (Male-Male, Male-Female, Female-Female)","Generic","Prototyping Tools","Set of 120 multicolored jumper wires for breadboarding and prototyping.",250,80,"No warranty","3 days","Exchange only",""
+"Breadboard (830 tie-points)","Generic","Prototyping Tools","Solderless breadboard for prototyping electronic circuits.",120,100,"No warranty","3 days","Exchange only",""
+"Arduino Uno R3 Microcontroller Board","Arduino","Microcontrollers","The most popular open-source microcontroller board, ideal for beginners and advanced users.",850,50,"1 year","7 days","Exchange only","https://www.arduino.cc/en/main/faqs"
+"Raspberry Pi 4 Model B (4GB RAM)","Raspberry Pi Foundation","Single Board Computers","A powerful single-board computer, perfect for robotics, IoT, and embedded projects.",5500,30,"1 year","15 days","Full refund within 15 days","https://www.raspberrypi.org/documentation/faqs/"
+"Robot Chassis Kit (2WD)","Generic","Robotics Kits","Basic 2-wheel drive robot chassis kit with motors and wheels.",750,10,"6 months","15 days","Full refund within 15 days for manufacturing defects",""
+"Ultrasonic Module Mount Bracket","Generic","Mechanical Components","Mounting bracket for HC-SR04 ultrasonic sensors.",10,150,"N/A","7 days","Full refund within 7 days if unused",""
+"CR2032 Coin Cell Battery Holder","Generic","Power Components","Holder for CR2032 coin cell batteries, often used with RTC modules.",15,100,"N/A","7 days","Full refund within 7 days if unused",""
+"Heat Shrink Tubing Assortment","Generic","Cables & Connectors","Set of various sizes of heat shrink tubing for insulating wires and connections.",120,30,"N/A","7 days","Full refund within 7 days if unopened",""
+"FT232RL FTDI USB to TTL Serial Converter Module","FTDI (Module by Generic)","Programmers & Converters","Essential tool for programming microcontrollers that lack a built-in USB interface.",300,15,"1 year","30 days","Full refund within 30 days if faulty",""
+"Logic Level Shifter (Bidirectional)","Generic","Interfacing Modules","Module for converting voltage levels between different microcontrollers (e.g., 5V to 3.3V).",60,50,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"ATmega328P Microcontroller IC (DIP)","Microchip","Microcontrollers","The heart of Arduino Uno, can be used for custom PCB designs.",180,20,"6 months","15 days","Full refund within 15 days if faulty",""
+"NRF24L01+ Wireless Transceiver Module","Nordic Semiconductor (Module by Generic)","Wireless Communication","2.4GHz wireless module for short-range communication between microcontrollers.",180,40,"6 months","15 days","Full refund within 15 days if faulty",""
+"NEO-6M GPS Module","u-blox (Module by Generic)","GPS Modules","GPS receiver module for location tracking in drones and autonomous robots.",600,12,"1 year","30 days","Full refund within 30 days if faulty",""
+"TCS3200 Color Sensor Module","TAOS (Module by Generic)","Sensors","Detects colors based on light intensity, useful for color-sorting robots.",450,10,"6 months","15 days","Full refund within 15 days if faulty",""
+"Force Sensitive Resistor (FSR)","Interlink Electronics","Sensors","Sensor that detects pressure, useful for tactile feedback and weight sensing.",250,15,"6 months","15 days","Full refund within 15 days if faulty",""
+"Flex Sensor (4.5 inch)","Spectra Symbol","Sensors","Sensor that changes resistance based on bending, useful for robotic gloves.",380,10,"6 months","15 days","Full refund within 15 days if faulty",""
+"Power Bank Module (5V Boost)","Generic","Power Modules","Module to convert battery voltage to 5V, ideal for portable projects.",120,30,"6 months","15 days","Full refund within 15 days if faulty",""
+"Infrared Remote Control Kit","Generic","Input Devices","IR receiver module and remote for wireless control of projects.",110,40,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"Micro USB Cable (1 Meter)","Generic","Cables & Connectors","Standard Micro USB cable for powering and programming many development boards.",50,70,"3 months","7 days","Full refund within 7 days if faulty",""
+"Gas Sensor Module (MQ-2)","Hanwei Electronics (Module by Generic)","Sensors","Detects combustible gas, smoke, and LPG, useful for safety applications.",150,25,"6 months","15 days","Full refund within 15 days if faulty",""
+"Water Level Sensor","Generic","Sensors","Module for detecting water level, used in smart irrigation or liquid monitoring.",80,50,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"Soil Moisture Sensor","Generic","Sensors","Analog sensor to detect moisture content in soil, ideal for agriculture robotics.",70,50,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"RTC DS1307 Real Time Clock Module","Maxim Integrated (Module by Generic)","Modules","Basic real-time clock module with I2C interface.",100,35,"6 months","15 days","Full refund within 15 days if faulty",""
+"Buzzer Module (Active)","Generic","Audio Components","Simple active buzzer for generating sound alerts.",30,100,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"Micro SD Card Module","Generic","Storage Modules","Module for interfacing micro SD cards with microcontrollers for data logging.",90,50,"3 months","7 days","Exchange only within 7 days for manufacturing defects",""
+"A4988 Stepper Motor Driver Module","Allegro MicroSystems (Module by Generic)","Motor Drivers","Driver module for controlling bipolar stepper motors.",180,30,"6 months","15 days","Full refund within 15 days if faulty",""
+"Stepper Motor (NEMA 17)","Wantai","Actuators","High-precision stepper motor for 3D printers, CNC machines, and robotics.",700,15,"1 year","30 days","Full refund within 30 days if faulty",""

@@ -6,7 +6,6 @@ from django_app.domain import product_service
 from django_app.domain.semantic_search import semantic_search
 from django_app.adapters.product_views import _product_to_dict
 
-
 @csrf_protect
 @require_http_methods(["POST"])
 def semantic_search_products(request):
@@ -14,12 +13,16 @@ def semantic_search_products(request):
         data = json.loads(request.body)
         query = data.get("query", "").strip()
         top_k = min(int(data.get("top_k", 10)), 50)
+        category_filter = data.get("category_filter", None)
         
         if not query:
             return JsonResponse({"error": "Query is required"}, status=400)
         
         products, _ = product_service.list_products(page=1, page_size=1000, category_ids=None)
         product_dicts = [_product_to_dict(p) for p in products]
+        
+        if category_filter:
+            product_dicts = [p for p in product_dicts if p.get('category') == category_filter]
         
         semantic_search.index_products(product_dicts)
         results = semantic_search.search(query, top_k=top_k)
@@ -39,7 +42,7 @@ def semantic_search_products(request):
         return JsonResponse(response_data)
     
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "An error occurred while processing your search request. Please try again."}, status=500)
 
 
 @csrf_protect
@@ -49,11 +52,12 @@ def find_similar_products(request):
         data = json.loads(request.body)
         product_id = data.get("product_id", "").strip()
         top_k = min(int(data.get("top_k", 5)), 20)
+        category_ids = data.get("category_ids", None)
         
         if not product_id:
             return JsonResponse({"error": "Product ID is required"}, status=400)
         
-        products, _ = product_service.list_products(page=1, page_size=1000, category_ids=None)
+        products, _ = product_service.list_products(page=1, page_size=1000, category_ids=category_ids)
         product_dicts = [_product_to_dict(p) for p in products]
         
         semantic_search.index_products(product_dicts)
@@ -74,7 +78,7 @@ def find_similar_products(request):
         return JsonResponse(response_data)
     
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "An error occurred while processing your search request. Please try again."}, status=500)
 
 
 @csrf_protect
@@ -86,11 +90,12 @@ def hybrid_search(request):
         semantic_weight = float(data.get("semantic_weight", 0.7))
         keyword_weight = float(data.get("keyword_weight", 0.3))
         top_k = min(int(data.get("top_k", 10)), 50)
+        category_ids = data.get("category_ids", None)
         
         if not query:
             return JsonResponse({"error": "Query is required"}, status=400)
         
-        products, _ = product_service.list_products(page=1, page_size=1000, category_ids=None)
+        products, _ = product_service.list_products(page=1, page_size=1000, category_ids=category_ids)
         product_dicts = [_product_to_dict(p) for p in products]
         
         query_lower = query.lower()
@@ -155,4 +160,4 @@ def hybrid_search(request):
         return JsonResponse(response_data)
     
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "An error occurred while processing your search request. Please try again."}, status=500)

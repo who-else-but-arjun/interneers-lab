@@ -20,10 +20,6 @@ def _ensure_repo():
 
 
 def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
-    """
-    Create a product, or if one with the same logical identity already exists,
-    increment its quantity instead of inserting a duplicate row.
-    """
     _ensure_repo()
     ok, errors = validate_product_data(data, for_update=False)
     if not ok:
@@ -57,6 +53,7 @@ def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
             "price": payload.get("price", existing.price),
             "brand": existing.brand,
             "quantity": new_quantity,
+            "policy": payload.get("policy", existing.policy) if payload.get("policy") else existing.policy,
         }
         updated = _repo.update(existing.id, merged)
         return updated, None
@@ -108,6 +105,7 @@ def update(product_id: str, data: dict) -> tuple[Optional[Product], Optional[dic
         "price": data.get("price", existing.price),
         "brand": data.get("brand", existing.brand),
         "quantity": data.get("quantity", existing.quantity),
+        "policy": data.get("policy", existing.policy) if data.get("policy") else existing.policy,
     }
     updated = _repo.update(product_id, merged)
     return updated, None

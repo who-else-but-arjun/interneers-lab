@@ -1,0 +1,89 @@
+PRODUCT MANUAL - Inventory Management System
+==========================================
+
+Version: 2.0
+Last Updated: March 2026
+
+SECTION 1: OVERVIEW
+-------------------
+The Inventory Management System is designed to help businesses track, manage, and optimize their product inventory. This system supports multiple product categories, brands, and provides AI-powered assistance for inventory operations.
+
+SECTION 2: PRODUCT SPECIFICATIONS
+-----------------------------------
+Each product in the system contains the following fields:
+- Product Name: Unique identifier for the product
+- Brand: Manufacturer or supplier brand
+- Category: Classification group (Electronics, Furniture, Clothing, etc.)
+- Description: Detailed product information
+- Price: Unit price in INR (Indian Rupees)
+- Quantity: Current stock level
+- Policy: Product-specific policies (warranty, returns, etc.)
+
+SECTION 3: WARRANTY INFORMATION
+---------------------------------
+Standard Warranty Terms:
+- Electronics: 1-year manufacturer warranty
+- Furniture: 2-year structural warranty
+- Clothing/Apparel: 30-day defect warranty
+- Appliances: 2-year comprehensive warranty
+- Books: No warranty, exchange only for damaged items
+- Toys: 6-month safety warranty
+
+Extended Warranty:
+Customers can purchase extended warranty for an additional 20% of product price.
+Extended warranty adds 1-2 years depending on product category.
+
+SECTION 4: PRODUCT CATEGORIES
+-------------------------------
+Supported Categories:
+1. Electronics - Smartphones, laptops, tablets, accessories
+2. Furniture - Office chairs, desks, storage units
+3. Clothing - Men's, Women's, Children's apparel
+4. Home Appliances - Kitchen appliances, cleaning equipment
+5. Books - Fiction, Non-fiction, Educational
+6. Sports & Fitness - Equipment, apparel, accessories
+7. Toys & Games - Educational toys, board games, outdoor toys
+8. Beauty & Personal Care - Cosmetics, skincare, grooming
+9. Automotive - Car accessories, maintenance tools
+10. Office Supplies - Stationery, printers, consumables
+
+SECTION 5: INVENTORY OPERATIONS
+-------------------------------
+Adding Products:
+- Single product entry through dashboard
+- Bulk upload via CSV file
+- AI-assisted product generation
+
+Updating Stock:
+- Manual quantity adjustment
+- Automatic low-stock alerts (threshold: 5 units)
+- Stock level tracking with historical data
+
+Removing Products:
+- Soft delete with audit trail
+- Bulk deletion capabilities
+- Category-wise removal options
+
+SECTION 6: AI INTEGRATION
+-------------------------
+The system includes AI-powered features:
+- Semantic search for product discovery
+- Similar product recommendations
+- Natural language product generation
+- Smart inventory insights and analytics
+
+SECTION 7: DATA EXPORT/IMPORT
+-----------------------------
+Supported Formats:
+- CSV for bulk operations
+- JSON for API integrations
+- Excel for reporting (via CSV conversion)
+
+SECTION 8: SECURITY & ACCESS
+----------------------------
+- CSRF protection on all forms
+- API authentication for external access
+- Data validation on all inputs
+- Audit logging for inventory changes
+
+For technical support, contact: support@inventory-system.com

@@ -13,12 +13,25 @@ class Product:
     price: float
     brand: str
     quantity: int
+    policy: dict
     category_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     def to_dict(self):
-        d = asdict(self)
+        d = {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'category': self.category,
+            'price': self.price,
+            'brand': self.brand,
+            'quantity': self.quantity,
+            'policy': dict(self.policy) if hasattr(self.policy, 'to_mongo') else self.policy,
+            'category_id': self.category_id,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
         for k in ("created_at", "updated_at"):
             if d.get(k) is not None:
                 d[k] = d[k].isoformat() + "Z" if d[k].tzinfo is None else d[k].isoformat()
@@ -93,6 +106,12 @@ def product_from_dict(
         price=float(data.get("price", 0)),
         brand=(data.get("brand") or "").strip(),
         quantity=int(data.get("quantity", 0)),
+        policy=data.get("policy") or {
+            "warranty_period": "",
+            "return_window": "",
+            "refund_policy": "",
+            "vendor_faq_link": ""
+        },
         created_at=created_at,
         updated_at=updated_at,
     )

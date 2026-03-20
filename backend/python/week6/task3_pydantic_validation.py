@@ -1,4 +1,4 @@
-import google.generativeai as genai
+import google.genai as genai
 import json
 import sys
 import os
@@ -8,9 +8,7 @@ from pydantic import BaseModel, Field, validator
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-GEMINI_API_KEY = "API_KEY"
-
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class ProductModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
@@ -45,7 +43,10 @@ class ProductList(BaseModel):
     products: List[ProductModel]
 
 def generate_products_with_gemini(count=10):
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    if not GEMINI_API_KEY:
+        return "Error: GEMINI_API_KEY not set"
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""Generate {count} products for a toy store inventory.
 Return ONLY a valid JSON array with no markdown formatting.
@@ -60,11 +61,12 @@ Each product must have these exact fields:
 
 Output format: [{{"name": "...", "description": "...", "category": "...", "price": 29.99, "brand": "...", "quantity": 100}}, ...]"""
     
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=genai.GenerateContentConfig(
             temperature=0.7,
-            max_output_tokens=4096
+            max_output_tokens=8192
         )
     )
     

@@ -16,6 +16,12 @@ def _doc_to_product(doc: ProductDocument) -> Product:
             "price": doc.price,
             "brand": doc.brand,
             "quantity": doc.quantity,
+            "policy": doc.policy if doc.policy else {
+                "warranty_period": "",
+                "return_window": "",
+                "refund_policy": "",
+                "vendor_faq_link": ""
+            },
         },
         id=str(doc.id),
         category_id=str(doc.category_id) if doc.category_id else None,
@@ -40,6 +46,12 @@ class MongoProductRepository(ProductRepository):
             price=float(data.get("price", 0)),
             brand=(data.get("brand") or "").strip(),
             quantity=int(data.get("quantity", 0)),
+            policy=data.get("policy") or {
+                "warranty_period": "",
+                "return_window": "",
+                "refund_policy": "",
+                "vendor_faq_link": ""
+            },
         )
         doc.save()
         doc.reload()
@@ -111,6 +123,13 @@ class MongoProductRepository(ProductRepository):
             doc.brand = (data["brand"] or "").strip()
         if "quantity" in data:
             doc.quantity = int(data["quantity"])
+        if "policy" in data:
+            doc.policy = data["policy"] if data["policy"] else {
+                "warranty_period": "",
+                "return_window": "",
+                "refund_policy": "",
+                "vendor_faq_link": ""
+            }
         doc.updated_at = datetime.utcnow()
         doc.save()
         doc.reload()

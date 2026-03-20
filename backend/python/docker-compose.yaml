@@ -24,11 +24,13 @@ services:
       MONGO_PASS: example
       MONGO_DB: inventory
       MONGO_AUTH_SOURCE: admin
+      PYTHONPATH: /workspace/backend/python
+      DJANGO_SETTINGS_MODULE: django_app.settings
     volumes:
       - ..:/workspace/backend
     depends_on:
       - mongodb
-    command: python manage.py runserver 0.0.0.0:8001
+    command: python python/manage.py runserver 0.0.0.0:8001
 
 volumes:
   mongodb_data:

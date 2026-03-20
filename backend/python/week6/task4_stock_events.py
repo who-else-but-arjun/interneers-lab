@@ -1,4 +1,4 @@
-import google.generativeai as genai
+import google.genai as genai
 import json
 import sys
 import os
@@ -8,9 +8,7 @@ from typing import Optional, List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-GEMINI_API_KEY = "API_KEY"
-
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class StockEvent(BaseModel):
     event_type: str = Field(..., min_length=1, max_length=50)
@@ -38,7 +36,10 @@ class StockEventList(BaseModel):
     events: List[StockEvent]
 
 def generate_stock_events():
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    if not GEMINI_API_KEY:
+        return "Error: GEMINI_API_KEY not set"
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
     today = datetime.now()
     future_dates = [(today + timedelta(days=i*3)).strftime("%b %d, %Y") for i in range(1, 11)]
@@ -71,9 +72,10 @@ Example output:
 
 Generate diverse events including deliveries, sales, returns, audits, and reorders."""
     
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=genai.GenerateContentConfig(
             temperature=0.7,
             max_output_tokens=2048
         )

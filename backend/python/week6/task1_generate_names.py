@@ -1,18 +1,20 @@
-import google.generativeai as genai
+import google.genai as genai
 import os
 
-GEMINI_API_KEY = "API_KEY"
-
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def generate_product_names(temperature=0.0):
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    if not GEMINI_API_KEY:
+        return "Error: GEMINI_API_KEY not set"
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = "Generate 5 creative product names for a toy store. Return them as a simple numbered list."
     
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=genai.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=100
         )
@@ -21,8 +23,14 @@ def generate_product_names(temperature=0.0):
     return response
 
 def count_tokens(text):
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    return model.count_tokens(text)
+    if not GEMINI_API_KEY:
+        return "Error: GEMINI_API_KEY not set"
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    return client.models.count_tokens(
+        model="gemini-2.5-flash",
+        contents=text
+    )
 
 def main():
     print("=" * 60)
