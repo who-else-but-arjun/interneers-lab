@@ -270,11 +270,16 @@
 }
 
 /* ── Page entrance animation ── */
-.page-header,
+.page-header {
+  position: relative;
+  z-index: 200;
+}
+
 .metrics,
 .three-col,
 .card {
   animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  isolation: isolate;
 }
 .metrics  { animation-delay: 0.05s; }
 .three-col { animation-delay: 0.1s; }

@@ -336,56 +336,80 @@ function removeProduct(id) {
   });
 }
 
-function addProduct(e) {
+async function getOrCreateCategoryId(categoryName) {
+  if (!categoryName) return null;
+  try {
+    const csrfToken = getCookie('csrftoken');
+    const listRes = await fetch('/categories/', {
+      headers: { 'X-CSRFToken': csrfToken }
+    });
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const existing = (listData.categories || listData).find(
+        c => c.title.toLowerCase() === categoryName.toLowerCase()
+      );
+      if (existing) return existing.id;
+    }
+    const createRes = await fetch('/categories/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ title: categoryName, description: '' })
+    });
+    if (createRes.ok) {
+      const created = await createRes.json();
+      return created.id || (created.category && created.category.id) || null;
+    }
+  } catch (e) {
+    console.error('Failed to get/create category:', e);
+  }
+  return null;
+}
+
+async function addProduct(e) {
   e.preventDefault();
+  const categoryName = document.getElementById('addCategory').value.trim();
+  const categoryId = await getOrCreateCategoryId(categoryName);
+
   const data = {
-    name: document.getElementById('addName').value.trim(),
-    brand: document.getElementById('addBrand').value.trim(),
-    category: document.getElementById('addCategory').value.trim(),
+    name:        document.getElementById('addName').value.trim(),
+    brand:       document.getElementById('addBrand').value.trim(),
+    category:    categoryName,
+    category_id: categoryId,
     description: document.getElementById('addDesc').value.trim(),
-    price: parseFloat(document.getElementById('addPrice').value) || 0,
-    quantity: parseInt(document.getElementById('addQty').value) || 0,
+    price:       parseFloat(document.getElementById('addPrice').value) || 0,
+    quantity:    parseInt(document.getElementById('addQty').value) || 0,
     policy: {
       warranty_period: document.getElementById('addWarranty').value.trim(),
-      return_window: document.getElementById('addReturn').value.trim(),
-      refund_policy: document.getElementById('addRefund').value.trim(),
+      return_window:   document.getElementById('addReturn').value.trim(),
+      refund_policy:   document.getElementById('addRefund').value.trim(),
       vendor_faq_link: document.getElementById('addFAQ').value.trim()
     }
   };
+
   fetch('/products/', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
     body: JSON.stringify(data)
   })
   .then(response => {
-    if (response.ok) {
-      return response.json();
-    } else {
-      throw new Error('Failed to add product');
-    }
+    if (response.ok) return response.json();
+    throw new Error('Failed to add product');
   })
   .then(newProduct => {
     products.push({
-      id: newProduct.id,
-      name: newProduct.name,
-      brand: newProduct.brand,
-      category: newProduct.category,
+      id:          newProduct.id,
+      name:        newProduct.name,
+      brand:       newProduct.brand,
+      category:    newProduct.category,
       description: newProduct.description,
-      price: newProduct.price,
-      quantity: newProduct.quantity,
-      policy: newProduct.policy || {
-        warranty_period: '',
-        return_window: '',
-        refund_policy: '',
-        vendor_faq_link: ''
-      }
+      price:       newProduct.price,
+      quantity:    newProduct.quantity,
+      policy:      newProduct.policy || { warranty_period: '', return_window: '', refund_policy: '', vendor_faq_link: '' }
     });
     e.target.reset();
     render();
   })
-  .catch(e => {
-    console.error('Error adding product', e);
-  });
+  .catch(e => console.error('Error adding product', e));
 }
 
 function parseCSVLine(line) {
@@ -407,17 +431,19 @@ function parseCSVLine(line) {
   return result;
 }
 
-function bulkUpload(e) {
+async function bulkUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
     const lines = ev.target.result.split('\n').filter(l => l.trim());
     if (lines.length < 2) return;
     const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
     const idx = k => headers.indexOf(k);
     const items = [];
-    lines.slice(1).forEach(l => {
+    const categoryCache = {};
+
+    for (const l of lines.slice(1)) {
       const cols = parseCSVLine(l);
       const name        = cols[idx('name')]        || '';
       const brand       = cols[idx('brand')]       || '';
@@ -425,46 +451,44 @@ function bulkUpload(e) {
       const description = cols[idx('description')] || '';
       const price       = cols[idx('price')]       || '0';
       const quantity    = cols[idx('quantity')]    || '0';
-      const warranty    = cols[idx('warranty_period')]   || '';
-      const return_win  = cols[idx('return_window')]     || '';
-      const refund      = cols[idx('refund_policy')]   || '';
-      const faq_link    = cols[idx('vendor_faq_link')] || '';
+      const warranty    = cols[idx('warranty_period')]  || '';
+      const return_win  = cols[idx('return_window')]    || '';
+      const refund      = cols[idx('refund_policy')]    || '';
+      const faq_link    = cols[idx('vendor_faq_link')]  || '';
+
       if (name && brand && category) {
+        if (!categoryCache[category]) {
+          categoryCache[category] = await getOrCreateCategoryId(category);
+        }
         items.push({
-          name: name.trim(),
-          brand: brand.trim(),
-          category: category.trim(),
+          name:        name.trim(),
+          brand:       brand.trim(),
+          category:    category.trim(),
+          category_id: categoryCache[category],
           description: description.trim(),
-          price: parseFloat(price) || 0,
-          quantity: parseInt(quantity) || 0,
+          price:       parseFloat(price) || 0,
+          quantity:    parseInt(quantity) || 0,
           policy: {
             warranty_period: warranty.trim(),
-            return_window: return_win.trim(),
-            refund_policy: refund.trim(),
+            return_window:   return_win.trim(),
+            refund_policy:   refund.trim(),
             vendor_faq_link: faq_link.trim()
           }
         });
       }
-    });
+    }
+
     if (items.length > 0) {
       fetch('/products/bulk/', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(items)
       })
-      .then(response => {
-        if (response.ok) {
-          loadProducts();
-        } else {
-          console.error('Bulk upload failed');
-        }
-      });
+      .then(response => { if (response.ok) loadProducts(); });
     }
   };
   reader.readAsText(file);
-  e.target.value = '';
 }
-
 function exportCSV() {
   const filtered = getFiltered();
   const selectedCheckboxes = document.querySelectorAll('.row-cb:checked');
@@ -899,7 +923,7 @@ function toggleAiChatSidebar() {
 
 async function createNewAiChat() {
   const newChat = {
-    id: Date.now().toString(),
+    id: null,
     title: 'New Chat',
     messages: [],
     created_at: new Date().toISOString(),
@@ -910,10 +934,7 @@ async function createNewAiChat() {
     const csrfToken = getCookie('csrftoken');
     const response = await fetch('/ai/chats/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
       body: JSON.stringify({ title: newChat.title })
     });
     if (response.ok) {
@@ -926,6 +947,10 @@ async function createNewAiChat() {
     console.error('Failed to create AI chat in backend:', e);
   }
 
+  if (!newChat.id) {
+    newChat.id = 'local-ai-' + Date.now().toString();
+  }
+
   aiChats.unshift(newChat);
   saveAiChatsToLocal();
   currentAiChatId = newChat.id;
@@ -934,11 +959,9 @@ async function createNewAiChat() {
   renderAiChatMessages();
   renderAiChatList();
 }
-
 function saveAiChatsToLocal() {
   localStorage.setItem('aiChats', JSON.stringify(aiChats));
 }
-
 async function syncAiChatToMongo() {
   if (!currentAiChatId) return;
   const chat = getAiChatById(currentAiChatId);
@@ -946,22 +969,23 @@ async function syncAiChatToMongo() {
 
   try {
     const csrfToken = getCookie('csrftoken');
-    const cleanMessages = (chat.messages || []).filter(m => !m._loading);
+    const cleanMessages = (chat.messages || []).filter(m => !m._loading).map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content.replace(/<[^>]*>/g, '') : m.content
+    }));
     const response = await fetch('/ai/chats/sync/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      },
-      body: JSON.stringify({
-        chat_id: chat.id,
-        messages: cleanMessages,
-        title: chat.title
-      })
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ chat_id: chat.id, messages: cleanMessages, title: chat.title })
     });
     if (response.ok) {
       const data = await response.json();
       if (data.success) {
+        const returnedId = data.chat_id || (data.chat && data.chat.id);
+        if (returnedId && returnedId !== chat.id) {
+          chat.id = returnedId;
+          currentAiChatId = returnedId;
+        }
         saveAiChatsToLocal();
       }
     }
@@ -971,7 +995,6 @@ async function syncAiChatToMongo() {
 }
 
 function loadAiChats() {
-  // Load from backend if available, otherwise fallback to localStorage
   fetch('/ai/chats/', { headers: { 'X-CSRFToken': getCookie('csrftoken') } })
     .then(r => r.ok ? r.json() : null)
     .then(data => {
@@ -985,25 +1008,21 @@ function loadAiChats() {
       } else {
         const stored = localStorage.getItem('aiChats');
         if (stored) {
-          aiChats = JSON.parse(stored);
-          renderAiChatList();
-          if (!currentAiChatId && aiChats.length > 0) {
-            loadAiChat(aiChats[0].id);
+          try { aiChats = JSON.parse(stored); } catch (_) { aiChats = []; }
+          if (aiChats.length > 0) {
+            renderAiChatList();
+            if (!currentAiChatId) loadAiChat(aiChats[0].id);
           }
-        } else {
-          createNewAiChat();
         }
       }
     }).catch(() => {
       const stored = localStorage.getItem('aiChats');
       if (stored) {
-        aiChats = JSON.parse(stored);
-        renderAiChatList();
-        if (!currentAiChatId && aiChats.length > 0) {
-          loadAiChat(aiChats[0].id);
+        try { aiChats = JSON.parse(stored); } catch (_) { aiChats = []; }
+        if (aiChats.length > 0) {
+          renderAiChatList();
+          if (!currentAiChatId) loadAiChat(aiChats[0].id);
         }
-      } else {
-        createNewAiChat();
       }
     });
 }
@@ -1057,21 +1076,30 @@ function hidePolicyTooltip() {
   if (tooltip) tooltip.style.display = 'none';
 }
 
+let _loadingRow = null;
+
 function showAiLoadingMessage() {
   if (aiLoadingMsgIndex !== null) return;
 
-  // Add a placeholder assistant message at the end (with spinner + animated dots)
   aiLoadingMsgIndex = aiChatHistory.length;
-  const initialText = `<span class="loading-dots">${aiLoadingMessages[0]}</span>`;
-  aiChatHistory.push({ role: 'assistant', content: initialText, _loading: true });
-  renderAiChatMessages();
+  aiChatHistory.push({ role: 'assistant', content: aiLoadingMessages[0], _loading: true });
+
+  const container = document.getElementById('aiChatMessages');
+  if (!container) return;
+
+  _loadingRow = document.createElement('div');
+  _loadingRow.className = 'msg-row bot';
+  _loadingRow.innerHTML = `<div class="bot-avatar" style="display:flex;align-items:center;justify-content:center;"><img src="${window.ICON_URL}" alt="Rippling" style="width:22px;height:22px;object-fit:contain;border-radius:5px;"></div><div class="bubble" style="line-height:1.6;"><span id="aiLoadingText">${aiLoadingMessages[0]}</span></div>`;
+  container.appendChild(_loadingRow);
+  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
 
   let msgIndex = 0;
   aiLoadingInterval = setInterval(() => {
     msgIndex = (msgIndex + 1) % aiLoadingMessages.length;
+    const el = document.getElementById('aiLoadingText');
+    if (el) el.textContent = aiLoadingMessages[msgIndex];
     if (aiLoadingMsgIndex !== null && aiChatHistory[aiLoadingMsgIndex]) {
-      aiChatHistory[aiLoadingMsgIndex].content = `<span class="loading-dots">${aiLoadingMessages[msgIndex]}</span>`;
-      renderAiChatMessages();
+      aiChatHistory[aiLoadingMsgIndex].content = aiLoadingMessages[msgIndex];
     }
   }, 2000);
 }
@@ -1081,15 +1109,21 @@ function hideAiLoadingMessage(replacementText) {
     clearInterval(aiLoadingInterval);
     aiLoadingInterval = null;
   }
+
+  if (_loadingRow) {
+    _loadingRow.remove();
+    _loadingRow = null;
+  }
+
   if (aiLoadingMsgIndex !== null) {
     if (typeof replacementText === 'string') {
       aiChatHistory[aiLoadingMsgIndex].content = replacementText;
       delete aiChatHistory[aiLoadingMsgIndex]._loading;
+      addAiMessage(replacementText, false);
     } else {
       aiChatHistory.splice(aiLoadingMsgIndex, 1);
     }
     aiLoadingMsgIndex = null;
-    renderAiChatMessages();
   }
 }
 
@@ -1107,7 +1141,6 @@ async function sendAiMessage() {
     return;
   }
 
-  // Add the user message to the local chat history and render it immediately.
   addAiMessage(text, true);
   btn.disabled = true;
   sendIcon.style.display = 'none';
@@ -1117,75 +1150,63 @@ async function sendAiMessage() {
   if (aiPreviewSection) aiPreviewSection.style.display = 'none';
 
   try {
-    // Ensure there is an active chat session to store history
     if (!currentAiChatId) {
       await createNewAiChat();
     }
     if (!Array.isArray(aiChatHistory)) aiChatHistory = [];
     aiChatHistory.push({ role: 'user', content: text });
-    renderAiChatMessages();
 
-    // Show a "thinking" indicator message after the user message
     showAiLoadingMessage();
 
-    // Update local chat state and optionally generate a title if it's still the default
     const currentChat = getAiChatById(currentAiChatId);
     if (currentChat) {
-      currentChat.messages = aiChatHistory;
+      currentChat.messages = aiChatHistory.filter(m => !m._loading);
       currentChat.updated_at = new Date().toISOString();
       if (!currentChat.title || currentChat.title === 'New Chat') {
-        const generatedTitle = await generateAiChatTitle(text);
-        if (generatedTitle) {
-          currentChat.title = generatedTitle;
-          setAiChatTitle(generatedTitle);
-        }
+        generateAiChatTitle(text).then(generatedTitle => {
+          if (generatedTitle) {
+            currentChat.title = generatedTitle;
+            setAiChatTitle(generatedTitle);
+          }
+        });
       }
       saveAiChatsToLocal();
     }
 
-    // Sync chat to MongoDB before sending
     await syncAiChatToMongo();
-
-    console.log('Sending AI request:', { scenario_text: text, count: count, chat_history: aiChatHistory });
 
     const csrfToken = getCookie('csrftoken');
     if (!csrfToken) {
-      addAiMessage('Error: CSRF token not found. Please refresh the page.', false);
+      hideAiLoadingMessage('Error: CSRF token not found. Please refresh the page.');
       return;
     }
-    
-    // Create AbortController for timeout
+
+    const cleanHistory = aiChatHistory
+      .filter(m => !m._loading)
+      .map(m => ({ role: m.role, content: m.content }));
+
     const controller = new AbortController();
-    let timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for AI generation
-    
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
     try {
       const response = await fetch('/ai/generate/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ scenario_text: text, count: count, chat_history: aiChatHistory }),
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ scenario_text: text, count: count, chat_history: cleanHistory }),
         signal: controller.signal
       });
-      
-      clearTimeout(timeoutId);
 
-      console.log('Response status:', response.status);
+      clearTimeout(timeoutId);
 
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        console.error('Non-JSON response:', textResponse.substring(0, 200));
-        addAiMessage('Server error: ' + response.status + ' - Please check console', false);
+        hideAiLoadingMessage('Server error: ' + response.status);
         return;
       }
-      
+
       const data = await response.json();
-      console.log('Response data:', data);
-      
+
       if (response.ok && data.success) {
-        // Determine what to show in the chat bubble
         let responseText = '';
         if (data.intent === 'chat') {
           responseText = data.chat_message || 'I\'m here to help!';
@@ -1196,31 +1217,20 @@ async function sendAiMessage() {
               ...p,
               _id: idx,
               _approved: null,
-              policy: p.policy || {
-                warranty_period: '',
-                return_window: '',
-                refund_policy: '',
-                vendor_faq_link: ''
-              }
+              policy: p.policy || { warranty_period: '', return_window: '', refund_policy: '', vendor_faq_link: '' }
             }));
             showAiPreview(data);
           } else {
             responseText = data.chat_message || 'I understood you want products, but could not generate any. Please try a more specific description.';
           }
         } else {
-          // Fallback for backward compatibility
           if (data.products && data.products.length > 0) {
             responseText = 'I have generated <strong>' + data.generated_count + '</strong> products for you! Please review them below.';
             pendingAiProducts = (data.products || []).map((p, idx) => ({
               ...p,
               _id: idx,
               _approved: null,
-              policy: p.policy || {
-                warranty_period: '',
-                return_window: '',
-                refund_policy: '',
-                vendor_faq_link: ''
-              }
+              policy: p.policy || { warranty_period: '', return_window: '', refund_policy: '', vendor_faq_link: '' }
             }));
             showAiPreview(data);
           } else {
@@ -1230,17 +1240,16 @@ async function sendAiMessage() {
 
         hideAiLoadingMessage(responseText);
 
-        const currentChat = getAiChatById(currentAiChatId);
-        if (currentChat) {
-          currentChat.messages = aiChatHistory.filter(m => !m._loading);
-          currentChat.updated_at = new Date().toISOString();
+        const updatedChat = getAiChatById(currentAiChatId);
+        if (updatedChat) {
+          updatedChat.messages = aiChatHistory.filter(m => !m._loading);
+          updatedChat.updated_at = new Date().toISOString();
           saveAiChatsToLocal();
         }
 
         await syncAiChatToMongo();
 
       } else {
-        // Handle different error statuses
         let errorText = 'Error: ';
         if (response.status === 429) {
           errorText = 'Too many requests. Please wait a moment and try again.';
@@ -1254,39 +1263,28 @@ async function sendAiMessage() {
         hideAiLoadingMessage(errorText);
       }
     } catch (err) {
-      // Clear timeout if it exists
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      
+      clearTimeout(timeoutId);
       let errorText = 'Failed: ';
       if (err.name === 'AbortError') {
-        errorText = 'Request timed out. The AI service is taking too long to respond. Please try again with a simpler request.';
+        errorText = 'Request timed out. Please try again with a simpler request.';
       } else if (err.message.includes('Failed to fetch')) {
-        errorText = 'Network error. Please check your internet connection and try again.';
+        errorText = 'Network error. Please check your internet connection.';
       } else if (err.message.includes('CSRF')) {
         errorText = 'Security error. Please refresh the page and try again.';
       } else {
         errorText += (err.message || err);
       }
       hideAiLoadingMessage(errorText);
-      console.error('Fetch error:', err);
-    } finally {
-      btn.disabled = false;
-      sendIcon.style.display = 'inline';
-      loadingIcon.style.display = 'none';
-      hideAiLoadingMessage();
     }
   } catch (err) {
-    // Handle errors from the outer try block
     console.error('AI generation error:', err);
     hideAiLoadingMessage('An unexpected error occurred. Please try again.');
+  } finally {
     btn.disabled = false;
     sendIcon.style.display = 'inline';
     loadingIcon.style.display = 'none';
   }
 }
-
 function updateThresholdDisplay(value) {
   document.getElementById('thresholdValue').textContent = value + '%';
 }
@@ -1846,11 +1844,13 @@ let ragChats = [];
 let currentRagChatId = null;
 let mongoChatIds = {}
 let quoteAgentChatId = null;
+let agentChats = [];
+let currentAgentChatId = null;
 
 async function loadRagChats() {
   try {
     const csrfToken = getCookie('csrftoken');
-    const response = await fetch('/rag/chats/', {
+    const response = await fetch('/agent/chats/', {
       headers: { 'X-CSRFToken': csrfToken }
     });
     
@@ -1891,7 +1891,7 @@ function saveRagChatsToLocal() {
 async function syncChatsToMongoDB() {
   try {
     const csrfToken = getCookie('csrftoken');
-    const response = await fetch('/rag/chats/sync/', {
+    const response = await fetch('/agent/chats/sync/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1913,7 +1913,7 @@ async function syncChatsToMongoDB() {
 async function saveChatToMongo(chat) {
   try {
     const csrfToken = getCookie('csrftoken');
-    const response = await fetch('/rag/chats/' + chat.id + '/', {
+    const response = await fetch('/agent/chats/' + chat.id + '/', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1984,7 +1984,7 @@ async function createNewRagChat() {
   
   try {
     const csrfToken = getCookie('csrftoken');
-    const response = await fetch('/rag/chats/', {
+    const response = await fetch('/agent/chats/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2008,6 +2008,39 @@ async function createNewRagChat() {
   currentRagChatId = newChat.id;
   renderRagChatList();
   loadRagChat(newChat.id);
+}
+
+async function createNewAgentChat() {
+  quoteAgentChatId = null;
+  const newChat = {
+    id: null,
+    title: 'New Chat',
+    messages: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    const csrfToken = getCookie('csrftoken');
+    const response = await fetch('/agent/chats/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ title: newChat.title })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.chat && data.chat.id) {
+        newChat.id = data.chat.id;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to create agent chat in MongoDB:', e);
+  }
+  if (!newChat.id) {
+    newChat.id = 'local-agent-' + Date.now().toString();
+  }
+  agentChats.unshift(newChat);
+  currentAgentChatId = newChat.id;
+  return newChat;
 }
 
 function loadRagChat(chatId) {
@@ -2084,7 +2117,7 @@ async function deleteRagChat(chatId) {
   
   try {
     const csrfToken = getCookie('csrftoken');
-    await fetch('/rag/chats/' + chatId + '/', {
+    await fetch('/agent/chats/' + chatId + '/', {
       method: 'DELETE',
       headers: { 'X-CSRFToken': csrfToken }
     });
@@ -2326,23 +2359,25 @@ async function sendRagMessage() {
   input.value = '';
   if (sendBtn) sendBtn.disabled = true;
 
-  if (!currentRagChatId) {
-    await createNewRagChat();
+  if (!currentAgentChatId) {
+    await createNewAgentChat();
   }
 
-  const chat = ragChats.find(c => c.id === currentRagChatId);
+  let chat = agentChats.find(c => c.id === currentAgentChatId);
+  if (!chat) {
+    await createNewAgentChat();
+    chat = agentChats.find(c => c.id === currentAgentChatId);
+  }
   if (!chat) return;
 
   chat.messages.push({role: 'user', content: text});
   chat.updatedAt = new Date().toISOString();
 
-  // Title generation and mongo sync run in the background — don't block the UI.
   if (chat.messages.length === 1) {
     generateChatTitle(text).then(title => {
       if (title) {
         chat.title = title;
         document.getElementById('ragCurrentChatTitle').textContent = title;
-        renderRagChatList();
       }
     });
   }
@@ -2599,4 +2634,3 @@ document.addEventListener('DOMContentLoaded', function() {
     aiSendBtn.disabled = !aiInput.value.trim();
   }
 });
-

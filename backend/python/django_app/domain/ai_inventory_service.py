@@ -3,6 +3,7 @@ import os
 from typing import Optional, Dict, Any, List, Tuple
 
 import google.genai as genai
+from google.genai import types
 
 from django_app.domain import product_service
 
@@ -120,7 +121,7 @@ Return ONLY the JSON object, no markdown formatting, no extra text.'''
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
-                config=genai.GenerateContentConfig(
+                config=types.GenerateContentConfig(
                     temperature=0.7,
                     max_output_tokens=8192
                 )

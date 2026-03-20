@@ -99,14 +99,22 @@ class QuoteAgentChatSyncView(View):
         try:
             data       = json.loads(request.body)
             session_id = _get_session_id(request)
-            if "messages" in data and "chats" not in data:
-                chat_id  = data.get("chat_id")
-                messages = data.get("messages", [])
-                title    = data.get("title")
+            if "chats" not in data and ("messages" in data or "title" in data):
+                chat_id    = data.get("chat_id")
+                messages   = data.get("messages")
+                title      = data.get("title")
+                title_only = messages is None
 
                 if chat_id:
+                    if title_only:
+                        existing = QuoteAgentChatRepositoryMongo.get_chat(chat_id, session_id)
+                        if existing and title:
+                            QuoteAgentChatRepositoryMongo.update_chat(
+                                chat_id, session_id, existing["messages"], title
+                            )
+                        return JsonResponse({"success": True, "chat_id": chat_id})
                     success = QuoteAgentChatRepositoryMongo.update_chat(
-                        chat_id, session_id, messages, title
+                        chat_id, session_id, messages or [], title
                     )
                     if success:
                         return JsonResponse({"success": True, "chat_id": chat_id})

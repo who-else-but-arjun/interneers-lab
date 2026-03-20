@@ -224,6 +224,12 @@ POST /agent/chat/
 | POST | `/agent/chat/stream/` | Streaming SSE agent response |
 | POST | `/agent/search/` | Direct product search (no LLM) |
 | GET | `/agent/status/` | Agent health, available tools, config |
+| GET | `/agent/chats/` | List saved chat sessions |
+| POST | `/agent/chats/` | Create a new chat session |
+| GET | `/agent/chats/<id>/` | Get a chat session |
+| PUT | `/agent/chats/<id>/` | Update messages/title |
+| DELETE | `/agent/chats/<id>/` | Delete a chat session |
+| POST | `/agent/chats/sync/` | Bulk sync local chats to server |
 
 ### Payloads
 
