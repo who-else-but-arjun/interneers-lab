@@ -1,18 +1,19 @@
 import json
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django_app.domain import product_service
+from typing import Optional, Dict, Any, Tuple, List
 
 
-def _parse_json_body(request):
+def _parse_json_body(request: HttpRequest) -> Optional[Dict[str, Any]]:
     try:
         return json.loads(request.body.decode("utf-8")) if request.body else {}
     except (json.JSONDecodeError, AttributeError):
         return None
 
 
-def _error_response(message: str, details: dict = None, status: int = 400):
+def _error_response(message: str, details: Optional[Dict[str, Any]] = None, status: int = 400) -> JsonResponse:
     payload = {"error": message}
     if details:
         payload["details"] = details
@@ -28,7 +29,7 @@ def _parse_category_ids(param: str) -> list[str] | None:
 
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
-def product_list(request):
+def product_list(request: HttpRequest) -> JsonResponse:
     if request.method == "GET":
         try:
             page = max(1, int(request.GET.get("page", 1)))
@@ -59,7 +60,7 @@ def product_list(request):
 
 @require_http_methods(["POST"])
 @csrf_exempt
-def product_bulk_create(request):
+def product_bulk_create(request: HttpRequest) -> JsonResponse:
     body = _parse_json_body(request)
     if body is None:
         return _error_response("Invalid JSON body", status=400)
@@ -78,7 +79,7 @@ def product_bulk_create(request):
 
 @require_http_methods(["GET", "PUT", "PATCH", "DELETE"])
 @csrf_exempt
-def product_detail(request, product_id):
+def product_detail(request: HttpRequest, product_id: str) -> JsonResponse:
     if request.method == "GET":
         product = product_service.get_by_id(product_id)
         if not product:
@@ -101,7 +102,7 @@ def product_detail(request, product_id):
 
 @require_http_methods(["POST", "DELETE"])
 @csrf_exempt
-def product_add_to_category(request, product_id):
+def product_add_to_category(request: HttpRequest, product_id: str) -> JsonResponse:
     if request.method == "DELETE":
         product, errors = product_service.update(product_id, {"category_id": None})
         if errors:
@@ -127,7 +128,7 @@ def product_add_to_category(request, product_id):
 
 @require_http_methods(["POST"])
 @csrf_exempt
-def product_bulk_csv(request):
+def product_bulk_csv(request: HttpRequest) -> JsonResponse:
     import csv
     import io
     if not request.FILES or "file" not in request.FILES:

@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass, asdict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any, Tuple
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Product:
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
         for k in ("created_at", "updated_at"):
             if d.get(k) is not None:
@@ -25,8 +25,8 @@ class Product:
         return d
 
 
-def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:
-    errors = {}
+def validate_product_data(data: Dict[str, Any], for_update: bool = False) -> Tuple[bool, Dict[str, str]]:
+    errors: Dict[str, str] = {}
     if not for_update:
         name = (data.get("name") or "").strip()
         if not name:
@@ -75,7 +75,7 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
 
 
 def product_from_dict(
-    data: dict,
+    data: Dict[str, Any],
     id: Optional[str] = None,
     category_id: Optional[str] = None,
     created_at: Optional[datetime] = None,

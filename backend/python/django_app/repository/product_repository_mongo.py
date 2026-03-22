@@ -1,6 +1,7 @@
 from datetime import datetime
 from bson import ObjectId
 from mongoengine import DoesNotExist
+from typing import Optional, Dict, Any, Tuple, List
 
 from django_app.domain.product import Product, product_from_dict
 from django_app.repository.product_document import ProductDocument
@@ -25,7 +26,7 @@ def _doc_to_product(doc: ProductDocument) -> Product:
 
 
 class MongoProductRepository(ProductRepository):
-    def create(self, data: dict) -> Product:
+    def create(self, data: Dict[str, Any]) -> Product:
         cid = None
         if data.get("category_id"):
             try:
@@ -45,7 +46,7 @@ class MongoProductRepository(ProductRepository):
         doc.reload()
         return _doc_to_product(doc)
 
-    def find_by_identity(self, name: str, brand: str, category: str) -> Product | None:
+    def find_by_identity(self, name: str, brand: str, category: str) -> Optional[Product]:
         """
         Look up an existing product by a stable identity:
         - name (case-sensitive as stored)
@@ -64,7 +65,7 @@ class MongoProductRepository(ProductRepository):
             return None
         return _doc_to_product(doc)
 
-    def get_by_id(self, product_id: str) -> Product | None:
+    def get_by_id(self, product_id: str) -> Optional[Product]:
         try:
             doc = ProductDocument.objects.get(id=ObjectId(product_id))
             return _doc_to_product(doc)
@@ -72,8 +73,8 @@ class MongoProductRepository(ProductRepository):
             return None
 
     def list_products(
-        self, page: int, page_size: int, category_ids: list[str] | None = None
-    ) -> tuple[list[Product], int]:
+        self, page: int, page_size: int, category_ids: Optional[List[str]] = None
+    ) -> Tuple[List[Product], int]:
         qs = ProductDocument.objects.order_by("-created_at")
         if category_ids:
             try:
@@ -88,7 +89,7 @@ class MongoProductRepository(ProductRepository):
         docs = list(qs.skip(start).limit(page_size))
         return [_doc_to_product(d) for d in docs], total
 
-    def update(self, product_id: str, data: dict) -> Product | None:
+    def update(self, product_id: str, data: Dict[str, Any]) -> Optional[Product]:
         try:
             doc = ProductDocument.objects.get(id=ObjectId(product_id))
         except (DoesNotExist, TypeError, ValueError):
