@@ -1,0 +1,14 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: interneers_lab_2026_mongodb
+    ports:
+      - '27019:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:
