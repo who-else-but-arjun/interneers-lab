@@ -1,0 +1,423 @@
+{% extends "django_app/base.html" %}
+{% load static %}
+
+{% block title %}Inventory Dashboard — Rippling Style{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'django_app/css/inventory_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Inventory Dashboard</h1>
+    <p class="sub">Monitor stock health, categories, and alerts in one place</p>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="position: relative;">
+      <button id="helpBtn" onclick="toggleHelpDropdown()" 
+              style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5c2145; 
+                     background: white; color: #5c2145; cursor: pointer; display: flex; 
+                     align-items: center; justify-content: center; transition: all 0.3s ease;"
+              title="Download Documentation"
+              onmouseover="this.style.background='#5c2145';this.style.color='white'"
+              onmouseout="this.style.background='white';this.style.color='#5c2145'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 22px; height: 22px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+        </svg>
+      </button>
+      <div id="helpDropdown" style="display: none; position: absolute; top: 50px; right: 0; background: white; 
+                                      border: 1px solid #dee2e6; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); 
+                                      min-width: 220px; z-index: 9999; padding: 8px 0;">
+        <div style="padding: 8px 16px; font-weight: 600; color: #5c2145; border-bottom: 1px solid #e9ecef; font-size: 13px;">
+          Documentation
+        </div>
+        <a href="{% static 'docs/product_manual.txt' %}" download 
+           style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #495057; 
+                  text-decoration: none; font-size: 13px; transition: all 0.2s;"
+           onmouseover="this.style.background='#f8f9fa';this.style.color='#5c2145'" 
+           onmouseout="this.style.background='transparent';this.style.color='#495057'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Product Manual (TXT)
+        </a>
+        <a href="{% static 'docs/return_policy.txt' %}" download 
+           style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #495057; 
+                  text-decoration: none; font-size: 13px; transition: all 0.2s;"
+           onmouseover="this.style.background='#f8f9fa';this.style.color='#5c2145'" 
+           onmouseout="this.style.background='transparent';this.style.color='#495057'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Return Policy (TXT)
+        </a>
+        <a href="{% static 'docs/vendor_faqs.txt' %}" download 
+           style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #495057; 
+                  text-decoration: none; font-size: 13px; transition: all 0.2s;"
+           onmouseover="this.style.background='#f8f9fa';this.style.color='#5c2145'" 
+           onmouseout="this.style.background='transparent';this.style.color='#495057'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Vendor FAQs (TXT)
+        </a>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button id="normalSearchBtn" onclick="toggleSearchMode('normal')" 
+              style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5c2145; 
+                     background: #5c2145; color: white; cursor: pointer; display: flex; 
+                     align-items: center; justify-content: center; transition: all 0.3s ease;"
+              title="Normal Search">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+      </button>
+      <button id="semanticSearchBtn" onclick="toggleSearchMode('semantic')" 
+              style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5c2145; 
+                     background: white; color: #5c2145; cursor: pointer; display: flex; 
+                     align-items: center; justify-content: center; transition: all 0.3s ease;"
+              title="Semantic Search">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+        </svg>
+      </button>
+    </div>
+    
+    <div id="normalSearchForm" style="display: flex; align-items: center; overflow: hidden; 
+                                      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+                                      width: 280px; opacity: 1;">
+      <div class="search-wrap" style="width: 100%;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+        <input class="input" id="searchInput" placeholder="Search products, brands, categories…" oninput="render()" />
+      </div>
+    </div>
+    
+    <div id="semanticSearchForm" style="display: flex; gap: 10px; align-items: center; 
+                                         overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+                                         width: 0; opacity: 0;">
+      <div class="search-wrap" style="width: 300px; position: relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="color: #5c2145;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+        </svg>
+        <input class="input" id="semanticSearchInput" placeholder="Semantic search: describe what you need..." 
+               style="padding-right: 80px;" onkeypress="if(event.key==='Enter') performSemanticSearch()" />
+        <button onclick="performSemanticSearch()" 
+                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); 
+                       padding: 6px 12px; background: #5c2145; color: white; border: none; 
+                       border-radius: 4px; font-size: 12px; cursor: pointer;">Search</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; width: 160px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 11px; color: #6c757d; font-weight: 500;">Similarity Threshold</span>
+          <span id="thresholdValue" style="font-size: 11px; color: #5c2145; font-weight: 600;">30%</span>
+        </div>
+        <input type="range" id="similarityThreshold" min="10" max="90" value="30" 
+               style="width: 100%; height: 6px; cursor: pointer; accent-color: #5c2145;"
+               oninput="updateThresholdDisplay(this.value)" />
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; width: 140px;">
+        <select id="semanticSearchCategory" class="input" style="font-size: 12px; padding: 6px 8px; height: 32px;">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="semanticSearchResults" style="display: none; margin-bottom: 20px;">
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+        Semantic Search Results
+      </h3>
+      <button onclick="clearSemanticSearch()" class="btn btn-outline btn-sm">Clear Results</button>
+    </div>
+    <div class="card-body">
+      <p id="semanticSearchQuery" style="color: var(--muted); margin-bottom: 10px;"></p>
+      <div id="semanticResultsList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="alertBanner"></div>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="three-col">
+  <div>
+    <div class="card" id="filterCard">
+      <button class="collapse-toggle" onclick="toggleFilters()">
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:16px;height:16px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+          Filters
+        </h3>
+        <svg id="filterChevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:16px;height:16px">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+      <div id="filterBody" class="card-body" style="border-top:1px solid var(--border)"></div>
+    </div>
+  </div>
+
+  <div class="space-y">
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+          </svg>
+          Inventory
+          <span class="item-badge" id="itemCount"></span>
+        </h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="input" onchange="changePageSize(this.value)" style="padding:0 12px;font-size:12px;border-radius:6px;border:1.5px solid #5c2145;background:#fff;color:#5c2145;cursor:pointer;width:110px;height:34px;font-weight:500;outline:none;box-sizing:border-box;">
+            <option value="5" ${pageSize==5?'selected':''}>5 / page</option>
+            <option value="10" ${pageSize==10?'selected':''}>10 / page</option>
+            <option value="20" ${pageSize==20?'selected':''}>20 / page</option>
+            <option value="50" ${pageSize==50?'selected':''}>50 / page</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()" style="border:1.5px solid #5c2145;color:#5c2145;display:flex;align-items:center;justify-content:center;gap:4px;width:110px;height:34px;padding:0;font-size:12px;font-weight:500;border-radius:6px;background:#fff;box-sizing:border-box;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 1 5.25 21h13.5A2.25 2.25 0 0 1 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap" id="tableWrap" style="padding-bottom:4px;"></div>
+      <div id="pagination" style="padding:8px 12px 12px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+          </svg>
+          Analytics
+        </h3>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button onclick="switchChart('stock')" id="btn-stock" class="chart-btn active" style="padding: 6px 12px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #5c2145; color: white; cursor: pointer; transition: all 0.2s;">Stock</button>
+          <button onclick="switchChart('category')" id="btn-category" class="chart-btn" style="padding: 6px 12px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; color: #5c2145; cursor: pointer; transition: all 0.2s;">Categories</button>
+          <button onclick="switchChart('brand')" id="btn-brand" class="chart-btn" style="padding: 6px 12px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; color: #5c2145; cursor: pointer; transition: all 0.2s;">Brands</button>
+          <button onclick="switchChart('price')" id="btn-price" class="chart-btn" style="padding: 6px 12px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; color: #5c2145; cursor: pointer; transition: all 0.2s;">Price</button>
+          <button onclick="switchChart('value')" id="btn-value" class="chart-btn" style="padding: 6px 12px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; color: #5c2145; cursor: pointer; transition: all 0.2s;">Value</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="chartOuter" style="display:flex;gap:0;width:100%;height:300px;overflow:hidden;"><div class="chart-wrap" id="chartWrap" style="flex:1;min-width:0;height:100%;"><canvas id="mainChart"></canvas></div><div id="pieLegendScroll" style="display:none;width:200px;min-width:160px;max-width:220px;height:100%;overflow-y:auto;padding:6px 0 6px 10px;border-left:1px solid #f0e8ed;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y">
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Product
+        </h3>
+      </div>
+      <div class="card-body">
+        <form onsubmit="addProduct(event)" class="form-fields">
+          <input class="input" id="addName" placeholder="Name *" required />
+          <input class="input" id="addBrand" placeholder="Brand *" required />
+          <input class="input" id="addCategory" placeholder="Category *" required />
+          <input class="input" id="addDesc" placeholder="Description" />
+          <div class="grid-2">
+            <input class="input" id="addPrice" type="number" min="0" placeholder="Price (₹)" />
+            <input class="input" id="addQty" type="number" min="0" placeholder="Quantity" />
+          </div>
+          <div style="border-top: 1px solid #e9ecef; margin: 8px 0; padding-top: 8px;">
+            <p style="font-size: 11px; color: #6c757d; margin-bottom: 8px; font-weight: 600;">Policy Information</p>
+            <input class="input" id="addWarranty" placeholder="Warranty Period (e.g., 1 year)" style="margin-bottom: 6px;" />
+            <input class="input" id="addReturn" placeholder="Return Window (e.g., 30 days)" style="margin-bottom: 6px;" />
+            <input class="input" id="addRefund" placeholder="Refund Policy Summary" style="margin-bottom: 6px;" />
+            <input class="input" id="addFAQ" placeholder="Vendor FAQ Link (optional)" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 1 5.25 21h13.5A2.25 2.25 0 0 1 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          Bulk Upload (CSV)
+        </h3>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          CSV format: <code style="background:var(--secondary);padding:1px 4px;border-radius:4px;font-size:10px">Name, Brand, Category, Description, Price, Quantity, Warranty_Period, Return_Window, Refund_Policy, Vendor_FAQ_Link</code>
+        </p>
+        <input type="file" accept=".csv" onchange="bulkUpload(event)" class="input" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <h3>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+      </svg>
+      AI Inventory Assistant
+    </h3>
+  </div>
+  <div class="card-body" style="padding: 20px;">
+    {% csrf_token %}
+    
+    <div style="display: flex; gap: 16px; height: 400px;">
+      <div class="sidebar expanded" id="aiChatSidebar">
+        <div class="sidebar-header">
+          <span>Chat History</span>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="icon-btn" id="aiChatSidebarToggle" onclick="toggleAiChatSidebar()" title="Collapse sidebar">
+              <svg id="aiSidebarToggleIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button class="new-chat-btn" onclick="createNewAiChat()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Chat
+        </button>
+        <div class="history-list" id="aiChatList"></div>
+      </div>
+
+      <div class="main-chat">
+        <div class="chat-header">
+          <button class="icon-btn" onclick="toggleAiChatSidebar()" title="Toggle history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </button>
+          <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:transparent;overflow:hidden;border-radius:6px;"><img src="{% static 'django_app/icon/icon.svg' %}" alt="Rippling" style="width:22px;height:22px;object-fit:contain;border-radius:5px;"></div>
+          <span class="name" id="aiChatTitle">New Chat</span>
+        </div>
+        <div class="messages" id="aiChatMessages"></div>
+
+        <div class="input-area">
+          <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:0;">
+            <input type="text" id="scenarioInput" placeholder="Type your request... (e.g., Create 20 educational toys for kids)" />
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label for="aiProductCount" style="font-size:11px;color:#64748b;">Count</label>
+              <input id="aiProductCount" type="number" value="10" min="1" max="50" step="1" style="width:70px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px;" oninput="validateCount(this)" />
+            </div>
+          </div>
+          <button class="send-btn" id="aiSendBtn" type="button" onclick="sendAiMessage()" disabled>
+            <svg id="aiSendIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <svg id="aiLoadingIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="60">
+                <animate attributeName="stroke-dashoffset" from="60" to="0" dur="1s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="aiPreviewSection" style="display:none; margin-top:16px;">
+      <div id="aiPreviewStats" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+      <div id="aiPreviewTable" style="margin-top:12px; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;"></div>
+      <div style="display: flex; gap: 12px; padding-top: 16px; justify-content: flex-end;">
+        <button id="doneReviewingBtn" onclick="closeAiPreview()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Done Reviewing
+        </button>
+        <button id="rejectAllBtn" onclick="rejectAiProducts()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Reject All Remaining
+        </button>
+        <button id="approveAllBtn" onclick="approveAiProducts()" style="padding: 10px 24px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Approve All Remaining
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="trigger" id="ragTrigger" onclick="toggleRagChat()">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+</button>
+
+<div class="widget" id="ragWidget">
+  <div class="sidebar" id="ragSidebar">
+    <div class="sidebar-header">
+      <span>Chat History</span>
+      <button onclick="toggleRagSidebar()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      </button>
+    </div>
+    <button class="new-chat-btn" onclick="createNewRagChat()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Chat
+    </button>
+    <div class="history-list" id="ragChatList"></div>
+  </div>
+
+  <div class="main-chat">
+    <div class="chat-header">
+      <button class="icon-btn" onclick="toggleRagSidebar()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+      </button>
+      <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:transparent;overflow:hidden;border-radius:6px;"><img src="{% static 'django_app/icon/icon.svg' %}" alt="Rippling" style="width:20px;height:20px;object-fit:contain;border-radius:4px;"></div>
+      <span class="name" id="ragCurrentChatTitle">New Chat</span>
+      <button class="icon-btn close-btn" onclick="toggleRagChat()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="messages" id="ragChatMessages"></div>
+
+    <div class="input-area">
+      <input type="text" id="ragInput" placeholder="Type your question about policies, warranties, returns..." onkeydown="if(event.key==='Enter')sendRagMessage()" />
+      <button class="send-btn" id="ragSendBtn" onclick="sendRagMessage()" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.ICON_URL = "{% static 'django_app/icon/icon.svg' %}";
+</script>
+<script src="{% static 'django_app/js/inventory_dashboard.js' %}"></script>
+{% endblock %}

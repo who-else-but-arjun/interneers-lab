@@ -1,0 +1,377 @@
+VENDOR FAQs - Inventory Management System
+=========================================
+
+Document Version: 2.5
+Last Updated: March 2026
+
+===============================================================================
+SECTION 1: GETTING STARTED
+===============================================================================
+
+Q1: How do I become a registered vendor?
+A: To become a vendor:
+   1. Complete the online vendor registration form
+   2. Submit business documents (GST, PAN, Bank details)
+   3. Complete product catalog verification
+   4. Sign vendor agreement
+   5. Integration testing with our API
+   6. Go live approval (typically 7-10 business days)
+
+Q2: What are the vendor eligibility criteria?
+A: Requirements include:
+   - Valid GST registration
+   - Minimum 1 year in business
+   - Product quality certifications (where applicable)
+   - Ability to fulfill orders within 24-48 hours
+   - Acceptable return/refund policy alignment
+   - INR 50,000 minimum monthly commitment (for preferred vendors)
+
+Q3: Is there a registration fee?
+A: Standard registration is FREE. Premium vendor status with featured 
+   placement has a monthly fee of INR 5,000.
+
+Q4: How long does the approval process take?
+A: Standard approval: 5-7 business days
+   Premium/fast-track: 2-3 business days (with additional fee)
+   Re-verification: Required annually
+
+===============================================================================
+SECTION 2: PRODUCT LISTING
+===============================================================================
+
+Q5: How do I add products to the system?
+A: Three methods available:
+   - Single product entry via vendor dashboard
+   - Bulk CSV upload (up to 1000 products at once)
+   - API integration for automated sync
+   - AI-assisted product generation (beta feature)
+
+Q6: What product information is required?
+A: Mandatory fields:
+   - Product name (max 100 characters)
+   - Brand name
+   - Category (from approved list)
+   - Price (INR)
+   - Available quantity
+   - Product description (min 50 characters)
+   - At least 3 product images
+   - Product weight and dimensions
+   - Warranty/return policy details
+
+Q7: Can I list products in multiple categories?
+A: No, each product must have one primary category. However, products 
+   appear in search results for related category searches through our 
+   AI-powered semantic search.
+
+Q8: How do I set competitive pricing?
+A: The system provides:
+   - Market price analysis tool
+   - Competitor price tracking
+   - Dynamic pricing suggestions
+   - Seasonal pricing recommendations
+   Note: Minimum 10% margin required for system sustainability
+
+Q9: Are there restricted products?
+A: Prohibited items include:
+   - Counterfeit or replica goods
+   - Hazardous materials without proper certification
+   - Prescription medications
+   - Weapons and ammunition
+   - Adult content/products
+   - Items violating intellectual property rights
+
+Q10: Can I update product information after listing?
+A: Yes, updates possible for:
+    - Price changes (effective immediately or scheduled)
+    - Quantity/stock updates (real-time)
+    - Description updates
+    - Image updates
+    - Policy changes (requires approval)
+    Note: Name and category changes require manual review
+
+===============================================================================
+SECTION 3: ORDER MANAGEMENT
+===============================================================================
+
+Q11: How will I receive orders?
+A: Order notifications via:
+    - Real-time dashboard alerts
+    - Email notifications
+    - SMS alerts (optional)
+    - API webhooks for integrated systems
+    - Mobile app push notifications
+
+Q12: What is the order fulfillment timeframe?
+A: Standard: Confirm within 4 hours, ship within 24 hours
+   Prime: Confirm within 2 hours, ship within 12 hours
+   Same-day: Confirm within 1 hour, deliver same day (select cities)
+
+Q13: How do I handle out-of-stock situations?
+A: Options:
+    - Automatic stock sync prevents overselling
+    - Set "low stock" alerts (default: 5 units)
+    - Enable "backorder" for specific products
+    - Temporary deactivation of product listing
+    - Partial fulfillment option for multi-item orders
+
+Q14: Can I cancel an order?
+A: Vendor cancellation allowed within 2 hours of order placement if:
+    - Item genuinely unavailable
+    - Pricing error discovered
+    - Force majeure situations
+    Note: Excessive cancellations affect vendor rating
+
+Q15: How are shipping costs calculated?
+A: Shipping calculated based on:
+    - Product weight and dimensions
+    - Delivery location
+    - Shipping method chosen by customer
+    - Vendor can offer free shipping above threshold
+    - Integration with multiple courier partners for best rates
+
+===============================================================================
+SECTION 4: PAYMENTS & FINANCE
+===============================================================================
+
+Q16: What is the payment cycle?
+A: Standard payment terms:
+    - Net 15 days from delivery confirmation
+    - Weekly payments for high-volume vendors (eligibility criteria)
+    - Payment processed every Tuesday and Friday
+    - Minimum payout threshold: INR 1,000
+
+Q17: What are the commission rates?
+A: Category-wise commission:
+    - Electronics: 5-8%
+    - Fashion: 12-15%
+    - Home & Living: 8-10%
+    - Beauty: 10-12%
+    - Books: 8-10%
+    - Toys: 10-12%
+    - Sports: 8-10%
+    - Premium brands: Negotiated separately
+
+Q18: Are there any additional fees?
+A: Additional charges:
+    - Payment gateway fee: 2% per transaction
+    - Storage fee (FBA): INR 15/cubic foot/month
+    - Returns processing: INR 50 per return
+    - Advertising fees: Optional, pay-per-click
+
+Q19: How do I track my payments?
+A: Available through:
+    - Vendor dashboard payment section
+    - Detailed transaction reports
+    - Invoice download
+    - Payment reconciliation tool
+    - GST-compliant invoice generation
+
+Q20: What about GST handling?
+A: System handles:
+    - Automatic GST calculation (IGST/CGST/SGST)
+    - Monthly GST reports
+    - TDS deduction where applicable
+    - Integration with GST portal for filing assistance
+
+===============================================================================
+SECTION 5: RETURNS & REFUNDS
+===============================================================================
+
+Q21: Who handles returns?
+A: Return process:
+    - Customer initiates return request
+    - Vendor reviews within 24 hours
+    - Approved returns: Pickup arranged by platform
+    - Item inspected at fulfillment center
+    - Refund processed after quality check
+
+Q22: What if a customer returns a damaged product?
+A: Scenarios handled:
+    - Customer damage: No refund, item returned to customer
+    - Transit damage: Courier liability, vendor protected
+    - Defective product: Full refund, vendor bear cost
+    - Wrong item sent: Full refund + penalty, vendor cost
+
+Q23: How are return shipping charges handled?
+A: Return shipping:
+    - Customer change of mind: Customer pays
+    - Defective/wrong item: Platform pays
+    - Size/fit issues: Customer pays (fashion category)
+    - Damaged in transit: Courier pays
+
+Q24: Can I dispute a return?
+A: Dispute process:
+    - Lodge dispute within 48 hours of return initiation
+    - Provide evidence (photos, videos, documentation)
+    - Resolution within 5 business days
+    - Appeal option available
+
+===============================================================================
+SECTION 6: PERFORMANCE & METRICS
+===============================================================================
+
+Q25: How is vendor performance measured?
+A: Key metrics tracked:
+    - Order fulfillment rate (target: >95%)
+    - On-time shipping (target: >98%)
+    - Cancellation rate (target: <2%)
+    - Return rate (target: <5%)
+    - Customer rating (target: >4.0/5)
+    - Response time (target: <4 hours)
+
+Q26: What happens if performance drops?
+A: Performance tiers:
+    - Green (excellent): Featured placement, lower commission
+    - Yellow (good): Standard treatment
+    - Orange (needs improvement): Warning, training provided
+    - Red (poor): Listing limitations, increased commission
+    - Black (critical): Account suspension review
+
+Q27: How can I improve my visibility?
+A: Optimization strategies:
+    - Complete product information
+    - High-quality images (min 1000x1000px)
+    - Competitive pricing
+    - Fast shipping options
+    - Positive customer reviews
+    - Participate in promotional campaigns
+    - Use sponsored product ads
+
+Q28: Are there vendor rewards programs?
+A: Yes, benefits include:
+    - Sales milestone bonuses
+    - Reduced commission for consistent performance
+    - Early access to new features
+    - Dedicated account manager (top vendors)
+    - Marketing co-op funds
+    - Annual vendor conference invitation
+
+===============================================================================
+SECTION 7: TECHNICAL INTEGRATION
+===============================================================================
+
+Q29: Do you provide API access?
+A: Yes, comprehensive REST API available for:
+    - Product catalog management
+    - Order processing
+    - Inventory synchronization
+    - Shipping updates
+    - Returns management
+    - Reports and analytics
+    Rate limit: 1000 requests/hour (standard), 5000 (premium)
+
+Q30: What is the API authentication method?
+A: Security:
+    - OAuth 2.0 authentication
+    - API key + Secret combination
+    - IP whitelisting option
+    - Webhook signature verification
+    - Rate limiting per vendor account
+
+Q31: Do you offer integration support?
+A: Support levels:
+    - Documentation and code samples (free)
+    - Email support for integration queries
+    - Phone support for premium vendors
+    - Dedicated integration consultant (enterprise)
+    - Pre-built plugins for major e-commerce platforms
+
+Q32: How does inventory sync work?
+A: Synchronization options:
+    - Real-time API updates (recommended)
+    - Scheduled CSV uploads
+    - Automatic stock reservation during checkout
+    - Low stock alerts via webhook
+    - Buffer stock settings to prevent overselling
+
+===============================================================================
+SECTION 8: POLICIES & COMPLIANCE
+===============================================================================
+
+Q33: What are the product quality requirements?
+A: Quality standards:
+    - Genuine products only (no counterfeits)
+    - Compliance with Indian standards (BIS where applicable)
+    - Proper labeling and packaging
+    - Expiry date management for applicable products
+    - Safety certifications for electronic products
+
+Q34: How is customer data protected?
+A: Privacy compliance:
+    - Vendor access limited to order-fulfillment data only
+    - No access to customer contact information
+    - Communication through platform messaging only
+    - GDPR and PDP Bill compliance
+    - Regular security audits
+
+Q35: What about intellectual property?
+A: IP protection:
+    - Vendors warrant they have rights to sell listed products
+    - Trademark verification for brand-name products
+    - DMCA takedown process for reported violations
+    - Counterfeit detection program
+    - Legal action for repeat offenders
+
+Q36: Are there advertising guidelines?
+A: Marketing rules:
+    - Truthful product representations
+    - No fake reviews or ratings manipulation
+    - Compliance with ASCI guidelines
+    - Proper disclosure of sponsored content
+    - No misleading discount claims
+
+===============================================================================
+SECTION 9: SUPPORT & CONTACT
+===============================================================================
+
+Q37: How do I contact vendor support?
+A: Support channels:
+    - Email: vendor-support@inventory-system.com
+    - Phone: 1-800-VENDOR (9 AM - 8 PM IST)
+    - Live Chat: Available in vendor dashboard
+    - Ticket system: Trackable support requests
+    - Emergency hotline: For critical issues (24/7)
+
+Q38: Is there vendor training available?
+A: Training resources:
+    - Onboarding webinar (mandatory for new vendors)
+    - Monthly best practices sessions
+    - Product photography workshops
+    - SEO and listing optimization training
+    - Seasonal preparation workshops
+    - Recorded training library access
+
+Q39: Where can I find policy updates?
+A: Stay updated via:
+    - Email notifications for major changes
+    - Policy update log in vendor dashboard
+    - Quarterly vendor newsletter
+    - In-app notifications
+    - Official vendor blog
+
+Q40: How do I escalate issues?
+A: Escalation path:
+    - Level 1: Support ticket
+    - Level 2: Senior support (48-hour SLA)
+    - Level 3: Vendor relations manager
+    - Level 4: Executive escalation (serious issues only)
+    - Ombudsman: Independent review for disputes
+
+===============================================================================
+ADDITIONAL RESOURCES
+===============================================================================
+
+Vendor Portal: vendors.inventory-system.com
+API Documentation: developers.inventory-system.com
+Community Forum: community.inventory-system.com/vendor
+Training Academy: academy.inventory-system.com
+Status Page: status.inventory-system.com
+
+For any questions not covered in this FAQ, please contact your 
+assigned vendor relations manager or submit a support ticket.
+
+Document Control:
+- Owner: Vendor Operations Team
+- Review Cycle: Quarterly
+- Next Review: June 2026
+- Document ID: VEN-FAQ-2026-03
