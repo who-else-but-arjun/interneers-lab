@@ -1,1 +1,15 @@
 .DS_Store
+chroma_db/
+test_chroma_db/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+.env
+.env.local
