@@ -31,8 +31,8 @@ class MongoProductRepository(ProductRepository):
         if data.get("category_id"):
             try:
                 cid = ObjectId(data["category_id"])
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"Invalid category_id format: {data['category_id']}") from e
         doc = ProductDocument(
             name=(data.get("name") or "").strip(),
             description=(data.get("description") or "").strip(),
@@ -43,7 +43,6 @@ class MongoProductRepository(ProductRepository):
             quantity=int(data.get("quantity", 0)),
         )
         doc.save()
-        doc.reload()
         return _doc_to_product(doc)
 
     def find_by_identity(self, name: str, brand: str, category: str) -> Optional[Product]:
@@ -114,7 +113,6 @@ class MongoProductRepository(ProductRepository):
             doc.quantity = int(data["quantity"])
         doc.updated_at = datetime.utcnow()
         doc.save()
-        doc.reload()
         return _doc_to_product(doc)
 
     def delete(self, product_id: str) -> bool:

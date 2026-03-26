@@ -11,7 +11,6 @@ from django_app.adapters.product_views import (
 from django_app.adapters.category_views import (
     category_list,
     category_detail,
-    category_products,
 )
 
 urlpatterns = [
@@ -19,10 +18,9 @@ urlpatterns = [
     path("hello/", hello_name),
     path("products/", product_list),
     path("products/bulk/", product_bulk_create),
-    path("products/bulk/csv/", product_bulk_csv),
+    path("products/bulkcsv/", product_bulk_csv),
     path("products/<str:product_id>/", product_detail),
     path("products/<str:product_id>/category/", product_add_to_category),
     path("categories/", category_list),
     path("categories/<str:category_id>/", category_detail),
-    path("categories/<str:category_id>/products/", category_products),
 ]
