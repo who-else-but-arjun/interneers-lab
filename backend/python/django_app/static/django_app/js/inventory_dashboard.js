@@ -479,7 +479,7 @@ async function bulkUpload(e) {
     }
 
     if (items.length > 0) {
-      fetch('/products/bulk/', {
+      fetch('/products/bulkcsv/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(items)
@@ -2610,6 +2610,9 @@ async function sendRagMessage() {
     const ri = document.getElementById('ragInput');
     if (sb) sb.disabled = !ri?.value.trim();
   }
+  
+  container.scrollTop = container.scrollHeight;
+  
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -2634,3 +2637,787 @@ document.addEventListener('DOMContentLoaded', function() {
     aiSendBtn.disabled = !aiInput.value.trim();
   }
 });
+
+// ==================== Stock Events Functions ====================
+
+function updateSelectColour(selectId, prefix) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  // Remove all existing colour classes
+  el.className = el.className.replace(new RegExp(`${prefix}-\\S+`, 'g'), '').trim();
+  if (el.value) el.classList.add(`${prefix}-${el.value}`);
+}
+
+function toggleStockEventForm() {
+  const form = document.getElementById('stockEventForm');
+  const isHidden = form.style.display === 'none' || form.style.display === '';
+  form.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    // Reset all state
+    selectedEventProducts = [];
+    selectedProductNames = [];
+    const nameEl = document.getElementById('eventName');
+    if (nameEl) nameEl.value = '';
+    const searchEl = document.getElementById('productSearch');
+    if (searchEl) searchEl.value = '';
+    const descEl = document.getElementById('eventDescription');
+    if (descEl) descEl.value = '';
+    // Pre-fill today's date
+    const today = new Date().toISOString().split('T')[0];
+    const dateEl = document.getElementById('eventDate');
+    if (dateEl) dateEl.value = today;
+    updateSelectedProductsRows();
+    loadProductsForSelection();
+    updateSelectColour('eventPriority', 'priority');
+    updateSelectColour('eventType', 'type');
+    document.getElementById('eventPriority')?.addEventListener('change', () => updateSelectColour('eventPriority', 'priority'));
+    document.getElementById('eventType')?.addEventListener('change', () => {
+      updateSelectColour('eventType', 'type');
+      updateSelectedProductsRows();
+    });
+  }
+}
+
+function getCsrfToken() {
+  const name = 'csrftoken';
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+let isStockEventsOpen = false;
+
+function toggleStockEventsWidget() {
+  const widget = document.getElementById('stockEventsWidget');
+  const trigger = document.getElementById('stockEventsTrigger');
+  if (!widget) return;
+  
+  isStockEventsOpen = !isStockEventsOpen;
+  
+  if (isStockEventsOpen) {
+    widget.style.display = 'flex';
+    widget.classList.add('open');
+    if (trigger) trigger.style.display = 'none';
+    // Ensure sidebar is visible by default
+    const sidebar = document.getElementById('stockEventsSidebar');
+    if (sidebar && !sidebar.classList.contains('expanded')) {
+      sidebar.classList.add('expanded');
+    }
+    loadStockEventsWidget();
+    // Show Add Event form by default
+    const form = document.getElementById('stockEventForm');
+    if (form && form.style.display !== 'block') {
+      toggleStockEventForm();
+    }
+  } else {
+    widget.classList.remove('open');
+    setTimeout(() => {
+      widget.style.display = 'none';
+    }, 300);
+    if (trigger) trigger.style.display = 'flex';
+  }
+}
+
+function toggleStockEventsSidebar() {
+  const sidebar = document.getElementById('stockEventsSidebar');
+  sidebar.classList.toggle('expanded');
+}
+
+async function loadStockEventsWidget() {
+  await Promise.all([
+    loadStockEventsSummary(),
+    loadUpcomingEvents(),
+    loadStockEventsTable(),
+  ]);
+}
+
+async function loadStockEventsSummary() {
+  try {
+    const res = await fetch('/stock-events/summary/');
+    const data = await res.json();
+    if (!data.success) return;
+    const s = data.summary;
+    document.getElementById('sePending').textContent = s.pending ?? 0;
+    document.getElementById('seTotal').textContent = s.total ?? 0;
+    document.getElementById('se7Days').textContent = s.upcoming_7_days ?? 0;
+    document.getElementById('seCritical').textContent = s.by_priority?.Critical ?? 0;
+  } catch (e) {
+    console.error('Failed to load stock events summary', e);
+  }
+}
+
+async function loadUpcomingEvents() {
+  const container = document.getElementById('upcomingEventsList');
+  if (!container) return;
+  try {
+    const res = await fetch('/stock-events/upcoming/?days=30');
+    const data = await res.json();
+    if (!data.success || data.events.length === 0) {
+      container.innerHTML = '<div style="padding: 16px; text-align: center; color: #64748b; font-size: 12px;">No upcoming events</div>';
+      return;
+    }
+    container.innerHTML = data.events.map(ev => `
+      <div class="priority-bg-${ev.priority}" style="padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 6px; cursor: pointer;" onclick="focusStockEvent('${ev.id}')">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 11px; font-weight: 600; color: #0f172a;">${ev.event_type}</span>
+          <span class="priority-badge-${ev.priority}" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: 500;">${ev.priority}</span>
+        </div>
+        <div style="font-size: 11px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.product_name}</div>
+        <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${ev.expected_date}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444; font-size: 12px;">Failed to load</div>';
+    console.error('Failed to load upcoming events', e);
+  }
+}
+
+async function loadStockEventsTable() {
+  const container = document.getElementById('stockEventsTableContainer');
+  if (!container) return;
+  container.innerHTML = '<div style="padding: 32px; text-align: center; color: #64748b; font-size: 13px;">Loading…</div>';
+  try {
+    const res = await fetch('/stock-events/?page=1&page_size=50');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Unknown error');
+
+    if (data.events.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 48px; text-align: center; color: #64748b;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:40px;height:40px;opacity:.4;color:#94a3b8;display:block;margin:0 auto 12px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25" />
+          </svg>
+          <p style="font-size:13px;margin-bottom:12px;">No stock events scheduled yet.</p>
+          <button onclick="openStockEventsAndShowForm()" style="padding:8px 16px;background:#5c2145;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Add Event</button>
+        </div>`;
+      return;
+    }
+
+    // Helper: extract [EventName] from description, return { eventName, note }
+    function parseDesc(desc) {
+      if (!desc) return { eventName: '', note: '' };
+      const m = desc.match(/^\[(.+?)\]\s*(.*)/);
+      if (m) return { eventName: m[1], note: m[2] };
+      return { eventName: '', note: desc };
+    }
+
+    container.innerHTML = `
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f8fafc;position:sticky;top:0;z-index:1;">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Event Name</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Type</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Products</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Date</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Priority</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Status</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.events.map(ev => {
+              const { eventName, note } = parseDesc(ev.description);
+              const displayName = ev.event_name || eventName || '—';
+              const noteShort = note ? (note.length > 30 ? note.substring(0,30)+'…' : note) : '';
+              const hasProducts = ev.products && ev.products.length > 0;
+              const productCount = hasProducts ? ev.products.length : 1;
+              return `
+              <tr style="border-bottom:1px solid #f1f5f9;" data-event-id="${ev.id}">
+                <td style="padding:10px 12px;min-width:120px;">
+                  <div style="font-weight:600;font-size:12px;color:#0f172a;">${displayName}</div>
+                  ${noteShort ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">${noteShort}</div>` : ''}
+                </td>
+                <td style="padding:10px 12px;">
+                  <span class="event-type-${ev.event_type}" style="padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;">${ev.event_type}</span>
+                </td>
+                <td style="padding:10px 12px;">
+                  <button onclick="toggleEventProducts('${ev.id}')" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;cursor:pointer;font-size:12px;color:#0f172a;white-space:nowrap;">
+                    <span>${productCount} product${productCount > 1 ? 's' : ''}</span>
+                    <svg id="arrow-${ev.id}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:12px;height:12px;transition:transform .2s;">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </button>
+                </td>
+                <td style="padding:10px 12px;text-align:center;font-size:11px;color:#475569;white-space:nowrap;">${ev.expected_date}</td>
+                <td style="padding:10px 12px;text-align:center;">
+                  <span class="priority-${ev.priority}" style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;">${ev.priority}</span>
+                </td>
+                <td style="padding:10px 12px;text-align:center;">
+                  <span class="status-${ev.status}" style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;">${ev.status.charAt(0).toUpperCase()+ev.status.slice(1)}</span>
+                </td>
+                <td style="padding:10px 12px;text-align:center;white-space:nowrap;">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
+                    ${ev.status === 'pending' ? `<button onclick="applyStockEvent('${ev.id}')" style="padding:4px 10px;background:#10b981;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:500;">Apply</button>` : '<div style="width:52px;"></div>'}
+                    <button onclick="deleteStockEvent('${ev.id}')" style="padding:4px 8px;background:#fee2e2;color:#ef4444;border:none;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:12px;height:12px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr id="products-${ev.id}" style="display:none;background:#fafbfc;">
+                <td colspan="7" style="padding:0;border-bottom:1px solid #f1f5f9;">
+                  <div style="padding:8px 12px 12px 48px;">
+                    <table style="width:100%;border-collapse:collapse;">
+                      <thead>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748b;font-weight:500;">Product</th>
+                          <th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748b;font-weight:500;width:80px;">Qty Change</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${(ev.products && ev.products.length > 0 ? ev.products : [{product_name: ev.product_name, quantity_change: ev.quantity_change}]).map(p => {
+                          const qtyColor = p.quantity_change > 0 ? '#10b981' : p.quantity_change < 0 ? '#ef4444' : '#64748b';
+                          return `<tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:6px 8px;font-size:11px;color:#0f172a;">${p.product_name}</td>
+                            <td style="padding:6px 8px;text-align:center;font-size:11px;font-weight:600;color:${qtyColor};">${p.quantity_change > 0 ? '+' : ''}${p.quantity_change}</td>
+                          </tr>`;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    container.innerHTML = `
+      <div style="padding: 48px; text-align: center; color: #64748b;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:40px;height:40px;opacity:.4;color:#94a3b8;display:block;margin:0 auto 12px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25" />
+        </svg>
+        <p style="font-size:13px;margin-bottom:12px;">No stock events scheduled yet.</p>
+        <button onclick="generateAIStockEventsWidget()" style="padding:8px 16px;background:#5c2145;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Generate AI Events</button>
+      </div>`;
+    console.error('Failed to load stock events table', e);
+  }
+}
+
+function focusStockEvent(eventId) {
+  const row = document.querySelector(`tr[data-event-id="${eventId}"]`);
+  if (row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.style.background = '#fef3c7';
+    row.style.transition = 'background 1.5s ease';
+    setTimeout(() => { row.style.background = ''; }, 2000);
+  }
+}
+
+function toggleEventProducts(eventId) {
+  const productsRow = document.getElementById(`products-${eventId}`);
+  const arrow = document.getElementById(`arrow-${eventId}`);
+  if (!productsRow) return;
+  
+  const isHidden = productsRow.style.display === 'none';
+  productsRow.style.display = isHidden ? 'table-row' : 'none';
+  if (arrow) {
+    arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+}
+
+let selectedEventProducts = [];
+let selectedProductNames = [];
+let availableProducts = [];
+
+async function loadProductsForSelection() {
+  try {
+    if (typeof products !== 'undefined' && products.length > 0) {
+      availableProducts = products;
+    } else {
+      const response = await fetch('/products/?page=1&page_size=200');
+      const data = await response.json();
+      availableProducts = data.products || data.items || [];
+    }
+    const catSelect = document.getElementById('productCategoryFilter');
+    if (catSelect) {
+      const cats = [...new Set(availableProducts.map(p => p.category).filter(Boolean))].sort();
+      catSelect.innerHTML = '<option value="">All Categories</option>' +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    renderProductOptions();
+  } catch (e) {
+    console.error('Failed to load products for selection', e);
+  }
+}
+
+function renderProductOptions(filter = '', categoryFilter = '') {
+  const container = document.getElementById('productOptions');
+  if (!container) return;
+  const alreadyAdded = new Set(selectedEventProducts.map(p => p.name));
+  const filtered = availableProducts.filter(p => {
+    const matchText = !filter ||
+      p.name.toLowerCase().includes(filter.toLowerCase()) ||
+      (p.brand || '').toLowerCase().includes(filter.toLowerCase()) ||
+      (p.category || '').toLowerCase().includes(filter.toLowerCase());
+    const matchCat = !categoryFilter || p.category === categoryFilter;
+    return matchText && matchCat && !alreadyAdded.has(p.name);
+  });
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="padding:10px 12px;color:#94a3b8;font-size:12px;text-align:center;">No products found</div>';
+    return;
+  }
+  container.innerHTML = filtered.map(p => `
+    <div onclick="selectProduct('${p.name.replace(/'/g, "\\'")}')"
+         style="padding:8px 12px;cursor:pointer;font-size:12px;color:#0f172a;border-bottom:1px solid #f8fafc;display:flex;justify-content:space-between;align-items:center;transition:background .1s;"
+         onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-weight:500;">${p.name}</div>
+        <div style="font-size:10px;color:#94a3b8;">${p.brand || ''} · ${p.category || ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:8px;">
+        <div style="font-size:11px;font-weight:600;color:${p.quantity <= 5 ? '#ef4444' : '#10b981'};">Stock: ${p.quantity}</div>
+        <div style="font-size:10px;color:#94a3b8;">₹${p.price?.toLocaleString('en-IN') || 0}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterProducts() {
+  const search = document.getElementById('productSearch')?.value || '';
+  const catFilter = document.getElementById('productCategoryFilter')?.value || '';
+  renderProductOptions(search, catFilter);
+}
+
+function selectProduct(name) {
+  if (selectedEventProducts.find(p => p.name === name)) return;
+  selectedEventProducts.push({ name, quantity: 0 });
+  selectedProductNames = selectedEventProducts.map(p => p.name);
+  document.getElementById('productSearch').value = '';
+  renderProductOptions();
+  updateSelectedProductsRows();
+}
+
+function removeEventProduct(name) {
+  selectedEventProducts = selectedEventProducts.filter(p => p.name !== name);
+  selectedProductNames = selectedEventProducts.map(p => p.name);
+  renderProductOptions(document.getElementById('productSearch')?.value || '');
+  updateSelectedProductsRows();
+}
+
+function updateSelectedProductsRows() {
+  const rowsEl = document.getElementById('selectedProductsRows');
+  const emptyEl = document.getElementById('selectedProductsEmpty');
+  if (!rowsEl) return;
+
+  if (selectedEventProducts.length === 0) {
+    rowsEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const eventType = document.getElementById('eventType')?.value || '';
+  const outgoingTypes = ['Delivery', 'Sale', 'Expiry'];
+  const incomingTypes = ['Restock', 'Return', 'Reorder'];
+  
+  let qtyHint = '+ add / − remove';
+  if (outgoingTypes.includes(eventType)) {
+    qtyHint = 'Must be negative (outgoing)';
+  } else if (incomingTypes.includes(eventType)) {
+    qtyHint = 'Must be positive (incoming)';
+  }
+
+  rowsEl.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <th style="padding:7px 12px;text-align:left;font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Product</th>
+          <th style="padding:7px 12px;text-align:center;font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em;width:160px;">Qty Change</th>
+          <th style="padding:7px 8px;width:32px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${selectedEventProducts.map((ep, idx) => {
+          const prod = availableProducts.find(p => p.name === ep.name);
+          const validationError = validateProductQuantityForEventType(ep.quantity, eventType, prod);
+          const errorStyle = validationError ? 'border-color:#ef4444;background:#fef2f2;' : '';
+          return `<tr style="border-bottom:1px solid #f1f5f9;" id="ep-row-${idx}">
+            <td style="padding:8px 12px;">
+              <div style="font-weight:500;font-size:12px;color:#0f172a;">${ep.name}</div>
+              ${prod ? `<div style="font-size:10px;color:#94a3b8;">${prod.brand || ''} · Stock: ${prod.quantity}</div>` : ''}
+            </td>
+            <td style="padding:6px 12px;">
+              <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+                <button onclick="adjustEpQty(${idx},-1)" style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#5c2145;display:flex;align-items:center;justify-content:center;flex-shrink:0;">−</button>
+                <input type="number" id="ep-qty-${idx}" value="${ep.quantity}"
+                       onchange="setEpQty(${idx},this.value)"
+                       style="width:70px;text-align:center;padding:4px 6px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;font-weight:600;color:${ep.quantity > 0 ? '#10b981' : ep.quantity < 0 ? '#ef4444' : '#64748b'};${errorStyle}" />
+                <button onclick="adjustEpQty(${idx},1)" style="width:24px;height:24px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#5c2145;display:flex;align-items:center;justify-content:center;flex-shrink:0;">+</button>
+              </div>
+              ${validationError ? `<div style="text-align:center;font-size:10px;margin-top:2px;color:#ef4444;font-weight:500;">${validationError}</div>` : `<div style="text-align:center;font-size:10px;margin-top:2px;color:#94a3b8;">${qtyHint}</div>`}
+            </td>
+            <td style="padding:6px 8px;text-align:center;">
+              <button onclick="removeEventProduct('${ep.name.replace(/'/g, "\\'")}')"
+                      style="width:22px;height:22px;border:none;border-radius:4px;background:#fee2e2;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">×</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function validateProductQuantityForEventType(quantity, eventType, product) {
+  if (quantity === 0) return null;
+  
+  const outgoingTypes = ['Delivery', 'Sale', 'Expiry'];
+  const incomingTypes = ['Restock', 'Return', 'Reorder'];
+  
+  if (outgoingTypes.includes(eventType)) {
+    if (quantity > 0) {
+      return `${eventType} requires negative qty`;
+    }
+    if (product && Math.abs(quantity) > product.quantity) {
+      return `Max ${product.quantity} available`;
+    }
+  }
+  
+  if (incomingTypes.includes(eventType)) {
+    if (quantity < 0) {
+      return `${eventType} requires positive qty`;
+    }
+  }
+  
+  if (eventType === 'Audit' && quantity < 0 && product && Math.abs(quantity) > product.quantity) {
+    return `Max ${product.quantity} available`;
+  }
+  
+  return null;
+}
+
+function adjustEpQty(idx, delta) {
+  const eventType = document.getElementById('eventType')?.value || '';
+  const outgoingTypes = ['Delivery', 'Sale', 'Expiry'];
+  const incomingTypes = ['Restock', 'Return', 'Reorder'];
+  
+  let newQty = (selectedEventProducts[idx].quantity || 0) + delta;
+  
+  const prod = availableProducts.find(p => p.name === selectedEventProducts[idx].name);
+  
+  if (outgoingTypes.includes(eventType)) {
+    if (newQty > 0) newQty = 0;
+    if (prod && Math.abs(newQty) > prod.quantity) {
+      newQty = -prod.quantity;
+    }
+  }
+  if (incomingTypes.includes(eventType) && newQty < 0) {
+    newQty = 0;
+  }
+  
+  selectedEventProducts[idx].quantity = newQty;
+  const input = document.getElementById(`ep-qty-${idx}`);
+  if (input) {
+    input.value = newQty;
+    const v = newQty;
+    input.style.color = v > 0 ? '#10b981' : v < 0 ? '#ef4444' : '#64748b';
+  }
+  updateSelectedProductsRows();
+}
+
+function setEpQty(idx, val) {
+  const eventType = document.getElementById('eventType')?.value || '';
+  const outgoingTypes = ['Delivery', 'Sale', 'Expiry'];
+  const incomingTypes = ['Restock', 'Return', 'Reorder'];
+  
+  let n = parseInt(val) || 0;
+  const prod = availableProducts.find(p => p.name === selectedEventProducts[idx].name);
+  
+  if (outgoingTypes.includes(eventType)) {
+    if (n > 0) {
+      showToast(`${eventType} events must have negative quantities`, 'error');
+      n = Math.abs(n) * -1;
+    }
+    if (prod && Math.abs(n) > prod.quantity) {
+      showToast(`Cannot ${eventType.toLowerCase()} more than ${prod.quantity} available`, 'error');
+      n = -prod.quantity;
+    }
+  }
+  if (incomingTypes.includes(eventType) && n < 0) {
+    showToast(`${eventType} events must have positive quantities`, 'error');
+    n = Math.abs(n);
+  }
+  
+  selectedEventProducts[idx].quantity = n;
+  const input = document.getElementById(`ep-qty-${idx}`);
+  if (input) {
+    input.value = n;
+    input.style.color = n > 0 ? '#10b981' : n < 0 ? '#ef4444' : '#64748b';
+  }
+  updateSelectedProductsRows();
+}
+
+function openStockEventsAndShowForm() {
+  const widget = document.getElementById('stockEventsWidget');
+  if (!widget || widget.style.display === 'none' || !isStockEventsOpen) {
+    toggleStockEventsWidget();
+  }
+  toggleStockEventForm();
+}
+
+async function createStockEvent() {
+  const eventName = (document.getElementById('eventName')?.value || '').trim();
+  const eventType = document.getElementById('eventType').value;
+  const rawDate = document.getElementById('eventDate').value.trim();
+  const priority = document.getElementById('eventPriority').value;
+  const description = (document.getElementById('eventDescription')?.value || '').trim();
+
+  if (!eventName) {
+    showToast('Please enter an event name', 'error');
+    document.getElementById('eventName')?.focus();
+    return;
+  }
+  if (selectedEventProducts.length === 0) {
+    showToast('Please add at least one product', 'error');
+    return;
+  }
+  if (!rawDate) {
+    showToast('Please pick an expected date', 'error');
+    return;
+  }
+  if (selectedEventProducts.every(ep => ep.quantity === 0)) {
+    showToast('Set a quantity change for at least one product', 'error');
+    return;
+  }
+
+  const outgoingTypes = ['Delivery', 'Sale', 'Expiry'];
+  const incomingTypes = ['Restock', 'Return', 'Reorder'];
+  const adjustmentTypes = ['Audit'];
+  
+  for (const ep of selectedEventProducts) {
+    if (ep.quantity === 0) continue;
+    
+    const prod = availableProducts.find(p => p.name === ep.name);
+    
+    if (outgoingTypes.includes(eventType)) {
+      if (ep.quantity > 0) {
+        showToast(`${eventType} events must have negative quantities (removing stock)`, 'error');
+        return;
+      }
+      if (prod && Math.abs(ep.quantity) > prod.quantity) {
+        showToast(`Cannot ${eventType.toLowerCase()} ${Math.abs(ep.quantity)} units of "${ep.name}" — only ${prod.quantity} available`, 'error');
+        return;
+      }
+    }
+    
+    if (incomingTypes.includes(eventType)) {
+      if (ep.quantity < 0) {
+        showToast(`${eventType} events must have positive quantities (adding stock)`, 'error');
+        return;
+      }
+    }
+    
+    if (adjustmentTypes.includes(eventType)) {
+      if (ep.quantity < 0 && prod && Math.abs(ep.quantity) > prod.quantity) {
+        showToast(`Cannot remove ${Math.abs(ep.quantity)} units of "${ep.name}" via audit — only ${prod.quantity} available`, 'error');
+        return;
+      }
+    }
+  }
+
+  const dateObj = new Date(rawDate + 'T00:00:00');
+  const expectedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+  const products = selectedEventProducts
+    .filter(ep => ep.quantity !== 0)
+    .map(ep => {
+      const prod = availableProducts.find(p => p.name === ep.name);
+      return {
+        product_name: ep.name,
+        quantity_change: ep.quantity,
+        product_id: prod?.id || null
+      };
+    });
+
+  try {
+    const response = await fetch('/stock-events/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({
+        event_name: eventName,
+        event_type: eventType,
+        expected_date: expectedDate,
+        priority: priority,
+        description: description,
+        products: products
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showToast(`Event "${eventName}" created with ${products.length} product(s)!`, 'success');
+      toggleStockEventForm();
+      await loadStockEventsWidget();
+      await loadProducts();
+    } else {
+      showToast('Error: ' + (data.errors ? JSON.stringify(data.errors) : data.error || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    showToast('Failed to create stock event: ' + e.message, 'error');
+  }
+}
+
+async function applyStockEvent(eventId) {
+  showToast('Applying stock event to inventory...', 'info');
+  try {
+    const response = await fetch(`/stock-events/${eventId}/apply/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (data.success) {
+      showToast(data.message, 'success');
+      await loadStockEventsWidget();
+      await loadProducts();
+    } else {
+      showToast('Error: ' + data.error, 'error');
+    }
+  } catch (e) {
+    showToast('Failed to apply: ' + e.message, 'error');
+  }
+}
+
+async function deleteStockEvent(eventId) {
+  try {
+    const response = await fetch(`/stock-events/${eventId}/`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (data.success) {
+      showToast('Event deleted', 'success');
+      await loadStockEventsWidget();
+    } else {
+      showToast('Error: ' + data.error, 'error');
+    }
+  } catch (e) {
+    showToast('Failed to delete: ' + e.message, 'error');
+  }
+}
+
+function generateAIStockEventsWidget() {
+  const panel = document.getElementById('aiGeneratePanel');
+  const isHidden = !panel || panel.style.display === 'none';
+  if (panel) panel.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    setTimeout(() => document.getElementById('aiPromptInput')?.focus(), 50);
+  }
+}
+
+async function confirmAIGenerate() {
+  const prompt = (document.getElementById('aiPromptInput')?.value || '').trim();
+  if (!prompt) {
+    showToast('Please enter a description of the event you want to generate', 'error');
+    document.getElementById('aiPromptInput')?.focus();
+    return;
+  }
+
+  const btn = document.getElementById('aiGenerateSubmitBtn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Thinking…</span>';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch('/stock-events/generate-ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ prompt })
+    });
+
+    if (!response.ok) {
+      const statusMsg = response.status >= 500 ? 'Server error. Please try again later.' : `Request failed (${response.status})`;
+      showToast(statusMsg, 'error');
+      console.error('AI generate HTTP error:', response.status);
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      const errMsg = data.error || 'Unknown error from AI generation';
+      const isQuotaError = /quota|rate.?limit|429|resource exhausted|too many requests/i.test(errMsg);
+      if (isQuotaError) {
+        showToast('AI service quota exceeded. Please try again later.', 'error');
+      } else {
+        showToast('AI generation failed');
+      }
+      console.error('AI generate error:', data);
+      return;
+    }
+
+    const ev = data.event;
+    if (!ev || !Array.isArray(ev.products) || ev.products.length === 0) {
+      showToast('AI could not match any products from your inventory to this request. Try rephrasing your prompt.', 'error');
+      console.error('AI generated empty event:', ev);
+      return;
+    }
+
+    document.getElementById('aiGeneratePanel').style.display = 'none';
+    document.getElementById('aiPromptInput').value = '';
+
+    const form = document.getElementById('stockEventForm');
+    if (!form) return;
+
+    selectedEventProducts = [];
+    selectedProductNames = [];
+    await loadProductsForSelection();
+
+    const nameEl = document.getElementById('eventName');
+    if (nameEl) nameEl.value = ev.event_name || '';
+
+    const typeEl = document.getElementById('eventType');
+    if (typeEl) { typeEl.value = ev.event_type || 'Delivery'; updateSelectColour('eventType', 'type'); }
+
+    const priorityEl = document.getElementById('eventPriority');
+    if (priorityEl) { priorityEl.value = ev.priority || 'Medium'; updateSelectColour('eventPriority', 'priority'); }
+
+    const descEl = document.getElementById('eventDescription');
+    if (descEl) descEl.value = ev.description || '';
+
+    if (ev.expected_date) {
+      try {
+        const parsed = new Date(ev.expected_date);
+        if (!isNaN(parsed)) {
+          const yyyy = parsed.getFullYear();
+          const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+          const dd = String(parsed.getDate()).padStart(2, '0');
+          const dateEl = document.getElementById('eventDate');
+          if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+        }
+      } catch (_) {}
+    }
+
+    if (Array.isArray(ev.products)) {
+      for (const item of ev.products) {
+        const pname = item.product_name;
+        const qty = item.quantity_change;
+        if (!selectedEventProducts.find(p => p.name === pname)) {
+          selectedEventProducts.push({ name: pname, quantity: qty });
+          selectedProductNames.push(pname);
+        }
+      }
+    }
+
+    updateSelectedProductsRows();
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    showToast(`AI filled the form with ${ev.products?.length || 0} product(s) — review and save`, 'info');
+
+  } catch (e) {
+    showToast('Failed to reach AI service: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+

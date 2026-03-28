@@ -11,7 +11,6 @@ from django_app.adapters.product_views import (
 from django_app.adapters.category_views import (
     category_list,
     category_detail,
-    category_products,
 )
 from django_app.adapters.ui_views import (
     inventory_dashboard,
@@ -48,6 +47,14 @@ from django_app.adapters.agent_views import (
 from django_app.adapters.agent_views import (
     QuoteAgentChatListView, QuoteAgentChatDetailView, QuoteAgentChatSyncView,
 )
+from django_app.adapters.stock_event_views import (
+    StockEventListView,
+    StockEventDetailView,
+    stock_event_summary,
+    upcoming_stock_events,
+    generate_ai_event,
+    apply_stock_event,
+)
 
 urlpatterns = [
     path("", inventory_dashboard, name="inventory_dashboard"),
@@ -77,15 +84,21 @@ urlpatterns = [
     path("agent/chats/",            QuoteAgentChatListView.as_view()),
     path("agent/chats/sync/",       QuoteAgentChatSyncView.as_view()),
     path("agent/chats/<str:chat_id>/", QuoteAgentChatDetailView.as_view()),
+
+    path("stock-events/", StockEventListView.as_view(), name="stock_event_list"),
+    path("stock-events/summary/", stock_event_summary, name="stock_event_summary"),
+    path("stock-events/upcoming/", upcoming_stock_events, name="upcoming_stock_events"),
+    path("stock-events/generate-ai/", generate_ai_event, name="generate_ai_event"),
+    path("stock-events/<str:event_id>/", StockEventDetailView.as_view(), name="stock_event_detail"),
+    path("stock-events/<str:event_id>/apply/", apply_stock_event, name="apply_stock_event"),
     
     path("admin/", admin.site.urls),
     path("hello/", hello_name),
     path("products/", product_list),
     path("products/bulk/", product_bulk_create),
-    path("products/bulk/csv/", product_bulk_csv),
+    path("products/bulkcsv/", product_bulk_csv),
     path("products/<str:product_id>/", product_detail),
     path("products/<str:product_id>/category/", product_add_to_category),
     path("categories/", category_list),
     path("categories/<str:category_id>/", category_detail),
-    path("categories/<str:category_id>/products/", category_products),
 ]

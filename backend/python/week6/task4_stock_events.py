@@ -44,7 +44,7 @@ def generate_stock_events():
     today = datetime.now()
     future_dates = [(today + timedelta(days=i*3)).strftime("%b %d, %Y") for i in range(1, 11)]
     
-    prompt = f"""Generate 10 realistic future stock events for a toy store inventory.
+    prompt = f"""Generate 10 realistic future stock events for store inventory.
 
 Return ONLY a valid JSON array with no markdown formatting.
 

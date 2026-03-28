@@ -33,22 +33,24 @@ You are an intelligent inventory assistant. Each message you receive contains pr
 
 Context sections injected into every message:
 - INVENTORY DATA     — live snapshot: totals, rankings, low-stock alerts, all categories and brands.
+- STOCK EVENTS       — upcoming deliveries, restocks, sales, returns, and audits.
 - PRODUCT CONTEXT    — semantic chunks for products relevant to this query.
 - POLICY & DOCS      — warranties, return windows, refund rules, FAQs.
 - CONVERSATION HISTORY — recent turns for continuity.
 
 When to answer directly from context (no tool call needed):
 - General inventory questions, rankings, overviews → use INVENTORY DATA.
+- Upcoming stock events, deliveries, restocks   → use STOCK EVENTS.
 - Policy, warranty, return questions               → use POLICY & DOCS.
 - Product descriptions already in PRODUCT CONTEXT → use them directly.
 
 When to use tools:
-- search_products   → product mentioned by name but not found in PRODUCT CONTEXT.
-- get_product_info  → need full details and already have an ID.
-- check_inventory   → user explicitly asks about current stock level.
-- calculate_quote   → quantity + price calculation required for a single product.
-- compare_products  → comparing multiple products (provide IDs).
-- multi_item_quote  → basket order with multiple products + quantities in one call.
+- search_products       → product mentioned by name but not found in PRODUCT CONTEXT.
+- get_product_info      → need full details and already have an ID.
+- check_inventory       → user explicitly asks about current stock level.
+- calculate_quote       → quantity + price calculation required for a single product.
+- compare_products      → comparing multiple products (provide IDs).
+- multi_item_quote      → basket order with multiple products + quantities in one call.
 
 Rules:
 - Never say "I cannot access pricing" — use search_products immediately.
@@ -128,7 +130,6 @@ def _extract_quote(result: dict) -> Optional[dict]:
     return None
 
 
-
 class CompareProductsInput(BaseModel):
     product_ids: List[str] = Field(description="List of product IDs to compare")
 
@@ -165,7 +166,7 @@ class QuoteAgentService:
                 q = query.strip()
                 results = []
                 for p in products:
-                    searchable = f"{p.name} {p.brand} {p.category} {getattr(p,'description','')}"
+                    searchable = f"{p.name} {p.brand} {p.category} {p.description}"
                     if _fuzzy_match(q, searchable):
                         results.append({
                             "id":                 str(p.id),
@@ -174,6 +175,7 @@ class QuoteAgentService:
                             "category":           p.category,
                             "unit_price":         float(p.price),
                             "quantity_available": int(p.quantity),
+                            "description":        p.description,
                         })
                 return results[:5]
             except Exception as e:
@@ -197,7 +199,7 @@ class QuoteAgentService:
                     "category":           p.category,
                     "unit_price":         float(p.price),
                     "quantity_available": int(p.quantity),
-                    "description":        getattr(p, "description", ""),
+                    "description":        p.description,
                 }
             except Exception as e:
                 return {"error": f"Product lookup failed: {e}"}
@@ -283,7 +285,7 @@ class QuoteAgentService:
                             "category":           p.category,
                             "unit_price":         float(p.price),
                             "quantity_available": int(p.quantity),
-                            "description":        getattr(p, "description", ""),
+                            "description":        p.description,
                         })
                 except Exception as e:
                     results.append({"product_id": pid, "error": str(e)})
@@ -340,7 +342,7 @@ class QuoteAgentService:
                 "order_total":   round(order_total, 2),
                 "total_savings": round(order_saving, 2),
                 "item_count":    len(line_items),
-            }
+            }       
 
         return [search_products, get_product_info, check_inventory, calculate_quote,
                 compare_products, multi_item_quote]
@@ -362,6 +364,7 @@ class QuoteAgentService:
             ctx = build_rag_context(user_request, chat_history or [])
             return (
                 f"=== INVENTORY DATA ===\n{ctx['inventory_stats']}\n\n"
+                f"=== STOCK EVENTS ===\n{ctx['stock_events']}\n\n"
                 f"=== PRODUCT CONTEXT ===\n{ctx['product_context']}\n\n"
                 f"=== POLICY & DOCS ===\n{ctx['policy_context']}\n\n"
                 f"=== CONVERSATION HISTORY ===\n{ctx['chat_history']}\n\n"
@@ -369,7 +372,7 @@ class QuoteAgentService:
             )
         except Exception as exc:
             print(f"[agent] RAG enrichment failed: {exc}")
-            return user_request
+            return f"Current request: {user_request}"
 
     def _build_result(self, agent_result: dict) -> dict:
         return {
@@ -390,8 +393,6 @@ class QuoteAgentService:
         self, user_request: str, chat_history: Optional[List[Dict]] = None
     ) -> AsyncIterator[dict]:
         yield {"type": "step", "step": "Retrieving context", "message": "Running RAG pipeline..."}
-
-        # _enrich runs the full RAG pipeline in a thread so the event loop stays free.
         message = await asyncio.to_thread(self._enrich, user_request, chat_history)
 
         yield {"type": "step", "step": "Agent reasoning", "message": "Running ReAct agent..."}
@@ -402,7 +403,6 @@ class QuoteAgentService:
                 {"messages": [HumanMessage(content=message)]}
             )
             payload = self._build_result(result)
-            # Emit tool call steps for the UI
             for tc in payload["tool_calls"]:
                 yield {"type": "step", "step": f"Tool: {tc['tool']}", "message": str(tc.get("args", {}))}
 

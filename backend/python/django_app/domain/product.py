@@ -55,7 +55,7 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
             price = float(data["price"])
             if price <= 0:
                 errors["price"] = "Price must be greater than 0"
-        except (TypeError, ValueError):
+        except Exception:
             errors["price"] = "Price must be a valid number greater than 0"
 
     if not for_update and "price" not in data:
@@ -63,12 +63,12 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
 
     if "quantity" in data:
         try:
-            qty = data["quantity"]
-            if not isinstance(qty, int):
-                qty = int(qty)
-            if qty < 0:
+            quantity = data["quantity"]
+            if not isinstance(quantity, int):
+                quantity = int(quantity)
+            if quantity < 0:
                 errors["quantity"] = "Quantity must be 0 or greater"
-        except (TypeError, ValueError):
+        except Exception:
             errors["quantity"] = "Quantity must be a valid non-negative integer"
 
     if not for_update and "quantity" not in data:

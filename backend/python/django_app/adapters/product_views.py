@@ -71,13 +71,23 @@ def product_bulk_create(request):
     if not isinstance(body, list):
         return _error_response("Body must be a JSON array of product objects", status=400)
     created, errors = product_service.create_many(body)
+    if errors and not created:
+        return JsonResponse(
+            {
+                "created": 0,
+                "items": [],
+                "errors": errors,
+            },
+            status=400,
+        )
+    status = 201 if not errors else 207
     return JsonResponse(
         {
             "created": len(created),
             "items": [p.to_dict() for p in created],
             "errors": errors if errors else None,
         },
-        status=201,
+        status=status,
     )
 
 
@@ -138,6 +148,8 @@ def product_bulk_csv(request):
     if not request.FILES or "file" not in request.FILES:
         return _error_response("No file uploaded; use form field 'file'", status=400)
     uploaded = request.FILES["file"]
+    if not uploaded.name.lower().endswith('.csv'):
+        return _error_response("File must be a CSV file (.csv extension)", status=400)
     try:
         content = uploaded.read().decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -148,33 +160,43 @@ def product_bulk_csv(request):
         return _error_response("CSV has no data rows", status=400)
     items = []
     for row in rows:
-        d = {}
-        for k, v in row.items():
-            kk = k.strip().lower()
-            if kk in ("name", "description", "category", "brand"):
-                d[kk] = (v or "").strip()
-            elif kk == "price":
+        product_data = {}
+        for key, value in row.items():
+            normalized_key = key.strip().lower()
+            if normalized_key in ("name", "description", "category", "brand"):
+                product_data[normalized_key] = (value or "").strip()
+            elif normalized_key == "price":
                 try:
-                    d[kk] = float(v) if v else 0
+                    product_data[normalized_key] = float(value) if value else 0
                 except (TypeError, ValueError):
-                    d[kk] = 0
-            elif kk == "quantity":
+                    product_data[normalized_key] = 0
+            elif normalized_key == "quantity":
                 try:
-                    d[kk] = int(v) if v else 0
+                    product_data[normalized_key] = int(value) if value else 0
                 except (TypeError, ValueError):
-                    d[kk] = 0
-            elif kk == "category_id" and v:
+                    product_data[normalized_key] = 0
+            elif normalized_key == "category_id" and value:
                 try:
-                    d[kk] = str(int(v)) if str(v).isdigit() else str(v).strip()
+                    product_data[normalized_key] = str(int(value)) if str(value).isdigit() else str(value).strip()
                 except (TypeError, ValueError):
                     pass
-        items.append(d)
+        items.append(product_data)
     created, errors = product_service.create_many(items)
+    if errors and not created:
+        return JsonResponse(
+            {
+                "created": 0,
+                "items": [],
+                "errors": errors,
+            },
+            status=400,
+        )
+    status = 201 if not errors else 207
     return JsonResponse(
         {
             "created": len(created),
             "items": [p.to_dict() for p in created],
             "errors": errors if errors else None,
         },
-        status=201,
+        status=status,
     )

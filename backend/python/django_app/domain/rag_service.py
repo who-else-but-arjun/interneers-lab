@@ -13,6 +13,11 @@ from langsmith import traceable
 
 from django_app.domain.rag_retriever import RetrievalResult, retrieve
 
+try:
+    from django_app.domain import stock_event_service
+    STOCK_EVENTS_AVAILABLE = True
+except ImportError:
+    STOCK_EVENTS_AVAILABLE = False
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
@@ -227,6 +232,35 @@ def rag_chat(message: str, chat_history: Optional[List[Dict]] = None) -> str:
     except Exception as exc:
         return f"I encountered an error: {exc}. Please try again."
 
+def get_stock_events_ctx(): 
+    stock_events_ctx = ""
+    if STOCK_EVENTS_AVAILABLE:
+        try:
+            summary = stock_event_service.get_event_summary()
+            upcoming = stock_event_service.get_upcoming_events(14)  # Next 2 weeks
+            stock_events_ctx = f"""STOCK EVENTS SUMMARY:
+- Total events: {summary['total']} (Pending: {summary['pending']}, Completed: {summary['completed']})
+- Upcoming (7 days): {summary['upcoming_7_days']} events
+- Upcoming (30 days): {summary['upcoming_30_days']} events
+- By Priority: Critical: {summary['by_priority']['Critical']}, High: {summary['by_priority']['High']}, Medium: {summary['by_priority']['Medium']}, Low: {summary['by_priority']['Low']}
+
+NEXT 14 DAYS UPCOMING EVENTS:
+"""
+            for e in upcoming[:10]:
+                products_summary = ""
+                if e.products:
+                    product_details = []
+                    for p in e.products[:3]:
+                        pname = p.get("product_name", "Unknown")
+                        qty = p.get("quantity_change", 0)
+                        product_details.append(f"{pname} ({qty:+d})")
+                    products_summary = ", ".join(product_details)
+                    if len(e.products) > 3:
+                        products_summary += f" +{len(e.products) - 3} more"
+                stock_events_ctx += f"- [{e.priority}] {e.event_type}: {products_summary or 'No products'} on {e.expected_date}\n"
+        except Exception as exc:
+            stock_events_ctx = f"Stock events unavailable: {exc}"
+    return stock_events_ctx
 
 def build_rag_context(message: str, chat_history: Optional[List[Dict]] = None) -> Dict:
     if chat_history is None:
@@ -247,6 +281,7 @@ def build_rag_context(message: str, chat_history: Optional[List[Dict]] = None) -
         result: RetrievalResult = retrieve(queries)
         return {
             "inventory_stats": result.inventory_stats or "Unavailable.",
+            "stock_events" : get_stock_events_ctx(),
             "product_context": result.product_context,
             "policy_context":  result.policy_context,
             "chat_history":    _format_chat_history(chat_history),
@@ -255,6 +290,7 @@ def build_rag_context(message: str, chat_history: Optional[List[Dict]] = None) -
         print(f"[rag] build_rag_context failed: {exc}")
         return {
             "inventory_stats": "Unavailable.",
+            "stock_events" : "Unavailable.",
             "product_context": "Unavailable.",
             "policy_context":  "Unavailable.",
             "chat_history":    _format_chat_history(chat_history),

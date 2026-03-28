@@ -7,7 +7,9 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from django_app.domain import product_service, product_category_service
+from django_app.domain import product_service, product_category_service, stock_event_service
+
+
 @csrf_protect
 @require_http_methods(["GET", "POST"])
 def inventory_dashboard(request):
@@ -84,7 +86,7 @@ def inventory_dashboard(request):
             if errors:
                 form_errors = errors
             else:
-                success_message = f"Created product “{product.name}”."
+                success_message = f"Created product '{product.name}'."
 
     products_all, total_all = product_service.list_products(
         page=1,
@@ -121,6 +123,11 @@ def inventory_dashboard(request):
     chart_labels = [p.name for p in products]
     chart_quantities = [p.quantity for p in products]
 
+    # Get stock events data
+    stock_events, stock_events_total = stock_event_service.list_events(page=1, page_size=50)
+    upcoming_events = stock_event_service.get_upcoming_events(days=30)
+    stock_events_summary = stock_event_service.get_event_summary()
+
     context = {
         "products": products,
         "total_products": len(products),
@@ -138,6 +145,11 @@ def inventory_dashboard(request):
         "selected_product_ids": selected_product_ids,
         "low_stock_products": low_stock_products,
         "low_stock_threshold": LOW_STOCK_THRESHOLD,
+        # Stock events context
+        "stock_events": [e.to_dict() for e in stock_events],
+        "stock_events_total": stock_events_total,
+        "upcoming_events": [e.to_dict() for e in upcoming_events[:10]],  # Top 10 upcoming
+        "stock_events_summary": stock_events_summary,
     }
     return render(request, "django_app/inventory_dashboard.html", context)
 

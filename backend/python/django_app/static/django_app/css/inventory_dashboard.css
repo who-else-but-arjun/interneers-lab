@@ -599,3 +599,104 @@ table tbody tr:hover .qty-ok {
 #pieLegendScroll::-webkit-scrollbar-thumb{background:rgba(92,33,69,0.25);border-radius:99px}
 #pieLegendScroll::-webkit-scrollbar-thumb:hover{background:rgba(92,33,69,0.45)}
 #pieLegendScroll{scrollbar-width:thin;scrollbar-color:rgba(92,33,69,0.25) transparent}
+
+/* Stock Events Widget Styles */
+.event-type-Delivery { background: #d1fae5; color: #065f46; }
+.event-type-Restock { background: #dbeafe; color: #1e40af; }
+.event-type-Sale { background: #fef3c7; color: #92400e; }
+.event-type-Return { background: #e9d5ff; color: #6b21a8; }
+.event-type-Audit { background: #f3f4f6; color: #374151; }
+.event-type-Expiry { background: #fee2e2; color: #991b1b; }
+.event-type-Reorder { background: #cffafe; color: #155e75; }
+
+.priority-Critical { background: #fee2e2; color: #991b1b; }
+.priority-High { background: #ffedd5; color: #9a3412; }
+.priority-Medium { background: #fef3c7; color: #92400e; }
+.priority-Low { background: #d1fae5; color: #065f46; }
+
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-completed { background: #d1fae5; color: #065f46; }
+.status-cancelled { background: #f3f4f6; color: #374151; }
+
+.text-success { color: #10b981; }
+.text-danger { color: #ef4444; }
+
+#stockEventsWidget.open {
+  display: flex;
+  animation: widgetPopIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+
+/* Priority Background Colors */
+.priority-bg-Critical { background: #fef2f2; }
+.priority-bg-High { background: #fff7ed; }
+.priority-bg-Medium { background: #f8fafc; }
+.priority-bg-Low { background: #f8fafc; }
+
+/* Priority Badge Colors */
+.priority-badge-Critical { background: #ef4444; }
+.priority-badge-High { background: #f97316; }
+.priority-badge-Medium { background: #f59e0b; }
+.priority-badge-Low { background: #10b981; }
+
+/* Quantity Colors */
+.qty-positive { color: #10b981; }
+.qty-negative { color: #ef4444; }
+
+
+/* Stock Events Trigger - ensure it works */
+#stockEventsTrigger {
+  position: fixed !important;
+  bottom: 24px !important;
+  left: 24px !important;
+  right: auto !important;
+  z-index: 9999 !important;
+}
+
+/* Stock events widget anchors to left side */
+.stock-events-widget,
+#stockEventsWidget {
+  position: fixed !important;
+  bottom: 24px !important;
+  left: 24px !important;
+  right: auto !important;
+  z-index: 9998 !important;
+}
+
+/* Spin animation for loading states */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Improved product options scroll */
+#productOptions::-webkit-scrollbar { width: 4px; }
+#productOptions::-webkit-scrollbar-track { background: transparent; }
+#productOptions::-webkit-scrollbar-thumb { background: rgba(92,33,69,0.2); border-radius: 99px; }
+
+/* Stock event table improvements */
+#stockEventsTableContainer table tbody tr:hover { background: #fdf8fa; }
+#stockEventsTableContainer table tbody tr { transition: background .1s; }
+
+/* Priority select colour-coded left border */
+#eventPriority { border-left-width: 3px !important; transition: border-color .15s; }
+#eventPriority.priority-Low      { border-left-color: #10b981 !important; }
+#eventPriority.priority-Medium   { border-left-color: #f59e0b !important; }
+#eventPriority.priority-High     { border-left-color: #f97316 !important; }
+#eventPriority.priority-Critical { border-left-color: #ef4444 !important; }
+
+/* Event type select colour-coded left border */
+#eventType { border-left-width: 3px !important; transition: border-color .15s; }
+#eventType.type-Delivery { border-left-color: #10b981 !important; }
+#eventType.type-Restock  { border-left-color: #3b82f6 !important; }
+#eventType.type-Sale     { border-left-color: #f59e0b !important; }
+#eventType.type-Return   { border-left-color: #8b5cf6 !important; }
+#eventType.type-Audit    { border-left-color: #6b7280 !important; }
+#eventType.type-Expiry   { border-left-color: #ef4444 !important; }
+#eventType.type-Reorder  { border-left-color: #06b6d4 !important; }
+
+/* AI generate panel textarea focus */
+#aiPromptInput:focus {
+  border-color: #8b3a5c !important;
+  box-shadow: 0 0 0 3px rgba(139, 58, 92, 0.08);
+}

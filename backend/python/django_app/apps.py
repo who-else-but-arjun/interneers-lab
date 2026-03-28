@@ -9,9 +9,10 @@ class DjangoAppConfig(AppConfig):
     def ready(self):
         import mongoengine
         from django.conf import settings
-        from django_app.domain import product_service, product_category_service
+        from django_app.domain import product_service, product_category_service, stock_event_service
         from django_app.repository.product_repository_mongo import MongoProductRepository
         from django_app.repository.category_repository_mongo import MongoProductCategoryRepository
+        from django_app.repository.stock_event_repository_mongo import MongoStockEventRepository
         from django_app.repository.product_document import ProductDocument
         from django_app.repository.category_document import ProductCategoryDocument
 
@@ -25,6 +26,7 @@ class DjangoAppConfig(AppConfig):
         )
         product_service.set_repository(MongoProductRepository())
         product_category_service.set_repository(MongoProductCategoryRepository())
+        stock_event_service.set_repository(MongoStockEventRepository())
 
         if ProductCategoryDocument.objects.count() == 0:
             ProductCategoryDocument(title="Food", description="Food and groceries").save()
