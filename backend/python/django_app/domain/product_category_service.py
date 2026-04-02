@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional
 from django_app.domain.product_category import (
     ProductCategory,
     validate_category_data,
@@ -13,12 +13,12 @@ def set_repository(repo: ProductCategoryRepository) -> None:
     _cat_repo = repo
 
 
-def _ensure_repo() -> None:
+def _ensure_repo():
     if _cat_repo is None:
         raise RuntimeError("ProductCategory repository not initialized.")
 
 
-def create(data: Dict[str, Any]) -> Tuple[Optional[ProductCategory], Optional[Dict[str, Any]]]:
+def create(data: dict) -> tuple[Optional[ProductCategory], Optional[dict]]:
     _ensure_repo()
     ok, errors = validate_category_data(data, for_update=False)
     if not ok:
@@ -32,12 +32,12 @@ def get_by_id(category_id: str) -> Optional[ProductCategory]:
     return _cat_repo.get_by_id(category_id)
 
 
-def list_all() -> List[ProductCategory]:
+def list_all() -> list[ProductCategory]:
     _ensure_repo()
     return _cat_repo.list_all()
 
 
-def update(category_id: str, data: Dict[str, Any]) -> Tuple[Optional[ProductCategory], Optional[Dict[str, Any]]]:
+def update(category_id: str, data: dict) -> tuple[Optional[ProductCategory], Optional[dict]]:
     _ensure_repo()
     existing = _cat_repo.get_by_id(category_id)
     if not existing:
