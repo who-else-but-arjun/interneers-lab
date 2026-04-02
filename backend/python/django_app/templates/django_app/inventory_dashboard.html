@@ -1,0 +1,406 @@
+{% extends "django_app/base.html" %}
+
+{% block title %}Inventory Dashboard — Rippling Style{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Inventory Dashboard</h1>
+    <p class="sub">Monitor stock health, categories, and alerts in one place</p>
+  </div>
+  <div class="search-wrap" style="width:280px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="input" id="searchInput" placeholder="Search products, brands, categories…" oninput="render()" />
+  </div>
+</div>
+
+<div id="alertBanner"></div>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="three-col">
+  <div>
+    <div class="card" id="filterCard">
+      <button class="collapse-toggle" onclick="toggleFilters()">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Filters
+        </h3>
+        <svg id="filterChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="18 15 12 9 6 15"/></svg>
+      </button>
+      <div id="filterBody" class="card-body" style="border-top:1px solid var(--border)"></div>
+    </div>
+  </div>
+
+  <div class="space-y">
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Inventory
+          <span class="item-badge" id="itemCount"></span>
+        </h3>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="table-wrap" id="tableWrap"></div>
+      <div id="pagination"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Stock Levels
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="stockChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y">
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Product
+        </h3>
+      </div>
+      <div class="card-body">
+        <form onsubmit="addProduct(event)" class="form-fields">
+          <input class="input" id="addName" placeholder="Name *" required />
+          <input class="input" id="addBrand" placeholder="Brand *" required />
+          <input class="input" id="addCategory" placeholder="Category *" required />
+          <input class="input" id="addDesc" placeholder="Description" />
+          <div class="grid-2">
+            <input class="input" id="addPrice" type="number" min="0" placeholder="Price (₹)" />
+            <input class="input" id="addQty" type="number" min="0" placeholder="Quantity" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Bulk Upload (CSV)
+        </h3>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          CSV format: <code style="background:var(--secondary);padding:1px 4px;border-radius:4px;font-size:10px">Name, Brand, Category, Description, Price, Quantity</code>
+        </p>
+        <input type="file" accept=".csv" onchange="bulkUpload(event)" class="input" />
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const LOW_STOCK = 5;
+let nextId = 16;
+let filtersOpen = true;
+let selectedCats = [];
+let selectedBrands = [];
+let chartInstance = null;
+let currentPage = 1;
+let pageSize = 10;
+
+let products = [];
+
+async function loadProducts() {
+  try {
+    const response = await fetch('/products/?page_size=100');
+    const data = await response.json();
+    products = data.items.map(item => ({
+      id: item.id,
+      name: item.name,
+      brand: item.brand,
+      category: item.category,
+      description: item.description,
+      price: item.price,
+      quantity: item.quantity
+    }));
+    render();
+  } catch (e) {
+    console.error('Failed to load products', e);
+  }
+}
+
+function getFiltered() {
+  const s = document.getElementById('searchInput').value.toLowerCase();
+  let list = products;
+  if (s) list = list.filter(p => p.name.toLowerCase().includes(s) || p.brand.toLowerCase().includes(s) || p.category.toLowerCase().includes(s));
+  if (selectedCats.length) list = list.filter(p => selectedCats.includes(p.category));
+  if (selectedBrands.length) list = list.filter(p => selectedBrands.includes(p.brand));
+  return list;
+}
+
+function getCats() { return [...new Set(products.map(p => p.category))].sort(); }
+function getBrands() { return [...new Set(products.map(p => p.brand))].sort(); }
+function fmt(n) { return n.toLocaleString('en-IN'); }
+
+function toggleFilters() {
+  filtersOpen = !filtersOpen;
+  document.getElementById('filterBody').style.display = filtersOpen ? '' : 'none';
+  document.getElementById('filterChevron').innerHTML = filtersOpen
+    ? '<polyline points="18 15 12 9 6 15"/>'
+    : '<polyline points="6 9 12 15 18 9"/>';
+}
+
+function render() {
+  const allFiltered = getFiltered();
+  const totalItems = allFiltered.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+  const start = (currentPage - 1) * pageSize;
+  const paginated = allFiltered.slice(start, start + pageSize);
+
+  const lowStock = products.filter(p => p.quantity <= LOW_STOCK);
+
+  const ab = document.getElementById('alertBanner');
+  if (lowStock.length) {
+    ab.innerHTML = `<div class="alert-banner"><div class="top-row"><span class="badge-pill">⚠ Stock Alert</span><span>${lowStock.length} product${lowStock.length>1?'s':''} at or below ${LOW_STOCK} units</span></div><div class="pills">${lowStock.map(p=>`<span class="pill">${p.name} (${p.quantity})</span>`).join('')}</div></div>`;
+  } else { ab.innerHTML = ''; }
+
+  const totalQty = products.reduce((s,p) => s+p.quantity, 0);
+  const totalVal = products.reduce((s,p) => s+p.price*p.quantity, 0);
+  document.getElementById('metrics').innerHTML = [
+    {l:'Total Products',v:fmt(products.length)},
+    {l:'Total Quantity',v:fmt(totalQty)},
+    {l:'Inventory Value (₹)',v:'₹'+fmt(totalVal)}
+  ].map(c => `<div class="card metric"><div class="metric-label">${c.l}</div><div class="metric-value">${c.v}</div></div>`).join('');
+
+  document.getElementById('itemCount').textContent = totalItems + ' items';
+
+  document.getElementById('tableWrap').innerHTML = `<table>
+    <thead><tr><th style="width:40px"><input type="checkbox" onchange="toggleAllCheckboxes(this)" /></th><th>Name</th><th>Brand</th><th>Category</th><th class="r">Price (₹)</th><th class="r">Qty</th><th>Actions</th></tr></thead>
+    <tbody>${paginated.length === 0 ? '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">No products found</td></tr>' : paginated.map(p => `<tr>
+      <td><input type="checkbox" class="row-cb" /></td>
+      <td><div class="prod-name">${p.name}</div><div class="prod-desc">${p.description}</div></td>
+      <td style="color:var(--muted)">${p.brand}</td>
+      <td><span class="cat-badge">${p.category}</span></td>
+      <td class="r" style="font-weight:500">₹${fmt(p.price)}</td>
+      <td class="r"><span class="${p.quantity<=LOW_STOCK?'qty-low':'qty-ok'}">${p.quantity}</span></td>
+      <td><button class="remove-btn" onclick="removeProduct('${p.id}')" title="Remove">✕</button></td>
+    </tr>`).join('')}</tbody></table>`;
+
+  renderPagination(totalPages);
+  renderFilters();
+  renderChart(allFiltered);
+}
+
+function renderPagination(totalPages) {
+  if (totalPages <= 1) {
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+  let buttons = [];
+  buttons.push(`<button class="btn btn-outline ${currentPage === 1 ? 'disabled' : ''}" onclick="${currentPage > 1 ? 'goToPage(' + (currentPage-1) + ')' : ''}">Prev</button>`);
+  const start = Math.max(1, currentPage - 1);
+  const end = Math.min(totalPages, currentPage + 1);
+  for (let i = start; i <= end; i++) {
+    buttons.push(`<button class="btn ${i === currentPage ? 'btn-primary' : 'btn-outline'}" onclick="goToPage(${i})">${i}</button>`);
+  }
+  buttons.push(`<button class="btn btn-outline ${currentPage === totalPages ? 'disabled' : ''}" onclick="${currentPage < totalPages ? 'goToPage(' + (currentPage+1) + ')' : ''}">Next</button>`);
+  document.getElementById('pagination').innerHTML = `<div class="pagination">${buttons.join('')}</div>`;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  render();
+}
+
+function renderFilters() {
+  const cats = getCats();
+  const brands = getBrands();
+  document.getElementById('filterBody').innerHTML = `
+    <div class="filter-section"><p>Page Size</p><select class="input" onchange="changePageSize(this.value)">
+      <option value="5" ${pageSize==5?'selected':''}>5</option>
+      <option value="10" ${pageSize==10?'selected':''}>10</option>
+      <option value="20" ${pageSize==20?'selected':''}>20</option>
+      <option value="50" ${pageSize==50?'selected':''}>50</option>
+    </select></div>
+    <div class="filter-section"><p>Categories</p>${cats.map(c => `<label><input type="checkbox" ${selectedCats.includes(c)?'checked':''} onchange="toggleCat('${c}')" /> ${c}</label>`).join('')}</div>
+    <div class="filter-section"><p>Brands</p>${brands.map(b => `<label><input type="checkbox" ${selectedBrands.includes(b)?'checked':''} onchange="toggleBrand('${b}')" /> ${b}</label>`).join('')}</div>
+    <div class="filter-actions">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="render()">Apply Filters</button>
+      <button class="btn btn-outline btn-sm" style="flex:1" onclick="clearFilters()">Clear</button>
+    </div>`;
+}
+
+function toggleCat(c) { selectedCats.includes(c) ? selectedCats = selectedCats.filter(x=>x!==c) : selectedCats.push(c); render(); }
+function toggleBrand(b) { selectedBrands.includes(b) ? selectedBrands = selectedBrands.filter(x=>x!==b) : selectedBrands.push(b); render(); }
+function clearFilters() { selectedCats=[]; selectedBrands=[]; document.getElementById('searchInput').value=''; currentPage=1; render(); }
+function changePageSize(size) { pageSize = parseInt(size); currentPage = 1; render(); }
+function toggleAllCheckboxes(el) { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = el.checked); }
+
+function removeProduct(id) {
+  fetch(`/products/${id}/`, {method: 'DELETE'})
+  .then(response => {
+    if (response.ok) {
+      products = products.filter(p => p.id != id);
+      render();
+    }
+  });
+}
+
+function addProduct(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('addName').value.trim(),
+    brand: document.getElementById('addBrand').value.trim(),
+    category: document.getElementById('addCategory').value.trim(),
+    description: document.getElementById('addDesc').value.trim(),
+    price: parseFloat(document.getElementById('addPrice').value) || 0,
+    quantity: parseInt(document.getElementById('addQty').value) || 0
+  };
+  fetch('/products/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error('Failed to add product');
+    }
+  })
+  .then(newProduct => {
+    products.push({
+      id: newProduct.id,
+      name: newProduct.name,
+      brand: newProduct.brand,
+      category: newProduct.category,
+      description: newProduct.description,
+      price: newProduct.price,
+      quantity: newProduct.quantity
+    });
+    e.target.reset();
+    render();
+  })
+  .catch(e => {
+    console.error('Error adding product', e);
+  });
+}
+
+function parseCSVLine(line) {
+  // Proper CSV parser that handles quoted fields containing commas.
+  const result = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { cur += '"'; i++; } // escaped quote ""
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function bulkUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const lines = ev.target.result.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return;
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+    const idx = k => headers.indexOf(k);
+    const items = [];
+    lines.slice(1).forEach(l => {
+      const cols = parseCSVLine(l);
+      const name        = cols[idx('name')]        || '';
+      const brand       = cols[idx('brand')]       || '';
+      const category    = cols[idx('category')]    || '';
+      const description = cols[idx('description')] || '';
+      const price       = cols[idx('price')]       || '0';
+      const quantity    = cols[idx('quantity')]    || '0';
+      if (name && brand && category) {
+        items.push({
+          name: name.trim(),
+          brand: brand.trim(),
+          category: category.trim(),
+          description: description.trim(),
+          price: parseFloat(price) || 0,
+          quantity: parseInt(quantity) || 0
+        });
+      }
+    });
+    if (items.length > 0) {
+      fetch('/products/bulk/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(items)
+      })
+      .then(response => {
+        if (response.ok) {
+          loadProducts();
+        } else {
+          console.error('Bulk upload failed');
+        }
+      });
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function exportCSV() {
+  const filtered = getFiltered();
+  // Description must be at index 3 to match bulkUpload's positional destructuring.
+  // Quote fields so commas inside descriptions don't break CSV parsing.
+  const esc = s => '"' + String(s||'').replace(/"/g, '""') + '"';
+  const rows = [['Name','Brand','Category','Description','Price','Quantity']];
+  filtered.forEach(p => rows.push([esc(p.name),esc(p.brand),esc(p.category),esc(p.description),p.price,p.quantity]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'inventory.csv';
+  a.click();
+}
+
+function renderChart(filtered) {
+  const ctx = document.getElementById('stockChart');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: filtered.map(p => p.name.length > 14 ? p.name.slice(0,14)+'…' : p.name),
+      datasets: [{
+        label: 'Quantity',
+        data: filtered.map(p => p.quantity),
+        backgroundColor: filtered.map(p => p.quantity <= LOW_STOCK ? 'rgba(220,53,69,0.75)' : 'rgba(92,33,69,0.75)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.06)' } }
+      }
+    }
+  });
+}
+
+loadProducts();
+</script>
+{% endblock %}
