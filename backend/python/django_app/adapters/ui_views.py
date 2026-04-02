@@ -1,7 +1,9 @@
 import csv
 import io
 import json
+from decimal import Decimal
 
+from django.contrib import messages
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect
@@ -11,137 +13,125 @@ from django_app.domain import product_service, product_category_service
 from typing import Optional, Dict, Any, List
 
 
-@csrf_protect
-@require_http_methods(["GET", "POST"])
-def inventory_dashboard(request: HttpRequest) -> HttpResponse:
-    """
-    HTML inventory dashboard:
-    - Shows current products in a table
-    - Allows creating a new product via a form
-    - Allows bulk CSV upload of products
-    - Supports filtering by product category
-    - Renders a stock-level chart and low-stock alerts
-    """
-    form_errors: Optional[Dict[str, str]] = None
-    success_message: str | None = None
+LOW_STOCK_THRESHOLD = 5
 
-    # Selected filters from query params (all based on current data, not hardcoded).
-    selected_category_ids = request.GET.getlist("category_id")
-    selected_brands = request.GET.getlist("brand")
-    selected_product_ids = request.GET.getlist("product_filter")
 
-    # Global low-stock threshold used for highlighting.
-    LOW_STOCK_THRESHOLD = 5
-
-    if request.method == "POST":
-        # Bulk CSV upload path
-        if request.FILES.get("csv_file"):
-            uploaded = request.FILES["csv_file"]
+def _parse_csv_row(row: Dict[str, str]) -> Optional[Dict[str, Any]]:
+    """Parse a single CSV row into product data."""
+    product_data: Dict[str, Any] = {}
+    for raw_key, raw_value in row.items():
+        normalized_key = (raw_key or "").strip().lower()
+        if normalized_key in ("name", "description", "category", "brand"):
+            product_data[normalized_key] = (raw_value or "").strip()
+        elif normalized_key == "price":
             try:
-                content = uploaded.read().decode("utf-8-sig")
-            except UnicodeDecodeError:
-                form_errors = {"csv_file": "File must be UTF-8 encoded"}
-            else:
-                reader = csv.DictReader(io.StringIO(content))
-                rows = list(reader)
-                if not rows:
-                    form_errors = {"csv_file": "CSV has no data rows"}
-                else:
-                    items: List[Dict[str, Any]] = []
-                    for row in rows:
-                        d: Dict[str, Any] = {}
-                        for k, v in row.items():
-                            kk = (k or "").strip().lower()
-                            if kk in ("name", "description", "category", "brand"):
-                                d[kk] = (v or "").strip()
-                            elif kk == "price":
-                                try:
-                                    d[kk] = float(v) if v else 0
-                                except (TypeError, ValueError):
-                                    d[kk] = 0
-                            elif kk == "quantity":
-                                try:
-                                    d[kk] = int(v) if v else 0
-                                except (TypeError, ValueError):
-                                    d[kk] = 0
-                            elif kk == "category_id" and v:
-                                try:
-                                    d[kk] = str(int(v)) if str(v).isdigit() else str(v).strip()
-                                except (TypeError, ValueError):
-                                    # Ignore invalid category_id in CSV
-                                    continue
-                        if d:
-                            items.append(d)
-                    if not items:
-                        form_errors = {"csv_file": "CSV did not contain any usable product rows"}
-                    else:
-                        created, bulk_errors = product_service.create_many(items)
-                        if bulk_errors:
-                            # Surface a concise summary; detailed errors stay server-side.
-                            form_errors = {
-                                "csv_file": f"Created {len(created)} products, "
-                                f"but {len(bulk_errors)} rows had validation issues."
-                            }
-                        if created:
-                            success_message = (
-                                f"Successfully created {len(created)} product"
-                                f"{'' if len(created) == 1 else 's'} from CSV."
-                            )
-        # Single product create path
-        else:
-            data = {
-                "name": request.POST.get("name", ""),
-                "description": request.POST.get("description", ""),
-                "category": request.POST.get("category", ""),
-                "price": request.POST.get("price", ""),
-                "brand": request.POST.get("brand", ""),
-                "quantity": request.POST.get("quantity", ""),
-            }
-            product, errors = product_service.create(data)
-            if errors:
-                form_errors = errors
-            else:
-                success_message = f"Created product “{product.name}”."
+                product_data[normalized_key] = float(raw_value) if raw_value else 0
+            except (TypeError, ValueError):
+                product_data[normalized_key] = 0
+        elif normalized_key == "quantity":
+            try:
+                product_data[normalized_key] = int(raw_value) if raw_value else 0
+            except (TypeError, ValueError):
+                product_data[normalized_key] = 0
+        elif normalized_key == "category_id" and raw_value:
+            try:
+                product_data[normalized_key] = str(int(raw_value)) if str(raw_value).isdigit() else str(raw_value).strip()
+            except (TypeError, ValueError):
+                continue
+    return product_data if product_data else None
 
-    # Fetch all products and derive dynamic filter options from current data.
-    products_all, total_all = product_service.list_products(
-        page=1,
-        page_size=200,
-        category_ids=None,
-    )
-    categories = product_category_service.list_all()
 
-    # Compute dynamic lists for filters.
+def _handle_csv_upload(request: HttpRequest) -> tuple[Optional[Dict[str, str]], Optional[str]]:
+    """Handle CSV upload. Returns (form_errors, success_message)."""
+    uploaded = request.FILES["csv_file"]
+    try:
+        content = uploaded.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return {"csv_file": "File must be UTF-8 encoded"}, None
+
+    reader = csv.DictReader(io.StringIO(content))
+    rows = list(reader)
+    if not rows:
+        return {"csv_file": "CSV has no data rows"}, None
+
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        parsed = _parse_csv_row(row)
+        if parsed:
+            items.append(parsed)
+
+    if not items:
+        return {"csv_file": "CSV did not contain any usable product rows"}, None
+
+    created, bulk_errors = product_service.create_many(items)
+    form_errors = None
+    success_message = None
+
+    if bulk_errors:
+        form_errors = {
+            "csv_file": f"Created {len(created)} products, but {len(bulk_errors)} rows had validation issues."
+        }
+    if created:
+        success_message = f"Successfully created {len(created)} product{'' if len(created) == 1 else 's'} from CSV."
+
+    return form_errors, success_message
+
+
+def _handle_single_product_create(request: HttpRequest) -> tuple[Optional[Dict[str, str]], Optional[str]]:
+    """Handle single product form submission. Returns (form_errors, success_message)."""
+    data = {
+        "name": request.POST.get("name", ""),
+        "description": request.POST.get("description", ""),
+        "category": request.POST.get("category", ""),
+        "price": request.POST.get("price", ""),
+        "brand": request.POST.get("brand", ""),
+        "quantity": request.POST.get("quantity", ""),
+    }
+    product, errors = product_service.create(data)
+    if errors:
+        return errors, None
+    return None, f'Created product "{product.name}".'
+
+
+def _apply_filters(
+    products: List,
+    category_ids: List[str],
+    brands: List[str],
+    product_ids: List[str]
+) -> List:
+    """Apply filters to product list."""
+    filtered = list(products)
+    if category_ids:
+        filtered = [p for p in filtered if p.category_id in category_ids]
+    if brands:
+        filtered = [p for p in filtered if p.brand in brands]
+    if product_ids:
+        filtered = [p for p in filtered if p.id in product_ids]
+    return filtered
+
+
+def _build_dashboard_context(
+    products: List,
+    products_all: List,
+    categories: List,
+    selected_category_ids: List[str],
+    selected_brands: List[str],
+    selected_product_ids: List[str],
+    form_errors: Optional[Dict[str, str]],
+    success_message: Optional[str]
+) -> Dict[str, Any]:
+    """Build template context for dashboard."""
     brand_options = sorted({p.brand for p in products_all if p.brand})
     product_options = products_all
 
-    # Apply filters in-memory on the current dataset.
-    products = list(products_all)
-    if selected_category_ids:
-        products = [
-            p for p in products
-            if p.category_id in selected_category_ids
-        ]
-    if selected_brands:
-        products = [
-            p for p in products
-            if p.brand in selected_brands
-        ]
-    if selected_product_ids:
-        products = [
-            p for p in products
-            if p.id in selected_product_ids
-        ]
-
     total_quantity = sum(p.quantity for p in products)
-    total_value = sum((p.price or 0) * (p.quantity or 0) for p in products)
-
+    total_value = sum((p.price or Decimal('0')) * (p.quantity or Decimal('0')) for p in products)
     low_stock_products = [p for p in products if (p.quantity or 0) <= LOW_STOCK_THRESHOLD]
 
     chart_labels = [p.name for p in products]
     chart_quantities = [p.quantity for p in products]
 
-    context = {
+    return {
         "products": products,
         "total_products": len(products),
         "total_quantity": total_quantity,
@@ -159,6 +149,45 @@ def inventory_dashboard(request: HttpRequest) -> HttpResponse:
         "low_stock_products": low_stock_products,
         "low_stock_threshold": LOW_STOCK_THRESHOLD,
     }
+
+
+@csrf_protect
+@require_http_methods(["GET", "POST"])
+def inventory_dashboard(request: HttpRequest) -> HttpResponse:
+    """
+    HTML inventory dashboard:
+    - Shows current products in a table
+    - Allows creating a new product via a form
+    - Allows bulk CSV upload of products
+    - Supports filtering by product category
+    - Renders a stock-level chart and low-stock alerts
+    """
+    form_errors: Optional[Dict[str, str]] = None
+    success_message: Optional[str] = None
+
+    # Selected filters from query params
+    selected_category_ids = request.GET.getlist("category_id")
+    selected_brands = request.GET.getlist("brand")
+    selected_product_ids = request.GET.getlist("product_filter")
+
+    # Handle POST requests
+    if request.method == "POST":
+        if request.FILES.get("csv_file"):
+            form_errors, success_message = _handle_csv_upload(request)
+        else:
+            form_errors, success_message = _handle_single_product_create(request)
+
+    # Fetch data and apply filters
+    products_all, _ = product_service.list_products(page=1, page_size=200, category_ids=None)
+    categories = product_category_service.list_all()
+
+    products = _apply_filters(products_all, selected_category_ids, selected_brands, selected_product_ids)
+
+    context = _build_dashboard_context(
+        products, products_all, categories,
+        selected_category_ids, selected_brands, selected_product_ids,
+        form_errors, success_message
+    )
     return render(request, "django_app/inventory_dashboard.html", context)
 
 
@@ -180,6 +209,7 @@ def ui_export_products(request: HttpRequest) -> HttpResponse:
     """
     ids = request.POST.getlist("selected_product")
     if not ids:
+        messages.error(request, "No products selected for export.")
         return redirect("inventory_dashboard")
 
     products: List = []
@@ -189,6 +219,7 @@ def ui_export_products(request: HttpRequest) -> HttpResponse:
             products.append(p)
 
     if not products:
+        messages.error(request, "Selected products no longer exist.")
         return redirect("inventory_dashboard")
 
     buffer = io.StringIO()
