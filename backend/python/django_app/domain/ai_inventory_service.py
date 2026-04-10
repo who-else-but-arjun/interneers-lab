@@ -115,7 +115,13 @@ STRICT REQUIREMENTS:
 6. Use realistic brand names that exist in the real world.
 
 When user asks about policies, warranties, returns, or refunds, ALWAYS redirect them to the RAG Chat.
-Return ONLY the JSON object, no markdown formatting, no extra text.'''
+Return ONLY the JSON object, no markdown formatting, no extra text.
+
+CRITICAL OUTPUT RULES:
+- Return ONLY the raw JSON object
+- NO markdown code blocks (no ```json or ```)
+- NO markdown formatting of any kind
+- NO extra text before or after the JSON'''
         
         try:
             response = client.models.generate_content(

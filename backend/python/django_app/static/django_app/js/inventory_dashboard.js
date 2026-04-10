@@ -494,7 +494,7 @@ function exportCSV() {
   const selectedCheckboxes = document.querySelectorAll('.row-cb:checked');
   
   if (selectedCheckboxes.length === 0) {
-    alert('Please select at least one product to export.');
+    showToast('Please select at least one product to export.', 'error');
     return;
   }
   
@@ -2618,6 +2618,16 @@ async function sendRagMessage() {
 document.addEventListener('DOMContentLoaded', function() {
   loadRagChats();
   loadAiChats();
+  
+  // Check for toast error from URL (e.g., from CSV export failure)
+  const urlParams = new URLSearchParams(window.location.search);
+  const toastError = urlParams.get('toast_error');
+  if (toastError) {
+    showToast(decodeURIComponent(toastError), 'error');
+    // Clean up the URL
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+  }
   
   const ragInput = document.getElementById('ragInput');
   const ragSendBtn = document.getElementById('ragSendBtn');

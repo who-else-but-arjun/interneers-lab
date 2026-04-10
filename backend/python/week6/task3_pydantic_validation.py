@@ -106,6 +106,23 @@ def validate_and_save_products(json_data):
                 "data": prod_data,
                 "error": str(e)
             })
+            
+    if invalid_products:
+        print("\nInvalid product errors:")
+        for inv in invalid_products:
+            print(f"  Product {inv['index']}: {inv['error']}")
+    
+    if valid_products:
+        print("\nSample valid product:")
+        print(json.dumps(valid_products[0], indent=2))
+        
+        output_file = "validated_products.json"
+        with open(output_file, "w") as f:
+            json.dump(valid_products, f, indent=2)
+        print(f"\nSaved {len(valid_products)} validated products to {output_file}")
+        
+        print("\nAttempting to save to MongoDB...")
+        save_to_mongodb(valid_products)
     
     return valid_products, invalid_products
 
@@ -168,23 +185,6 @@ def main():
     print(f"\nValidation Results:")
     print(f"  Valid products: {len(valid_products)}")
     print(f"  Invalid products: {len(invalid_products)}")
-    
-    if invalid_products:
-        print("\nInvalid product errors:")
-        for inv in invalid_products:
-            print(f"  Product {inv['index']}: {inv['error']}")
-    
-    if valid_products:
-        print("\nSample valid product:")
-        print(json.dumps(valid_products[0], indent=2))
-        
-        output_file = "validated_products.json"
-        with open(output_file, "w") as f:
-            json.dump(valid_products, f, indent=2)
-        print(f"\nSaved {len(valid_products)} validated products to {output_file}")
-        
-        print("\nAttempting to save to MongoDB...")
-        save_to_mongodb(valid_products)
     
     print("\n" + "=" * 70)
     print("TASK 3 COMPLETED")

@@ -67,9 +67,8 @@ class AIInventoryChatRepositoryMongo:
     @staticmethod
     def delete_chat(chat_id: str, session_id: str) -> bool:
         """Delete a chat session"""
-        try:
-            chat = AIInventoryChatDocument.objects.get(id=chat_id, session_id=session_id)
-            chat.delete()
-            return True
-        except:
+        chat = AIInventoryChatDocument.objects.filter(id=chat_id, session_id=session_id).first()
+        if chat is None:
             return False
+        chat.delete()
+        return True

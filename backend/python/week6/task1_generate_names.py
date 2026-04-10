@@ -1,4 +1,5 @@
 import google.genai as genai
+from google.genai import types
 import os
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -14,7 +15,7 @@ def generate_product_names(temperature=0.0):
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt,
-        config=genai.GenerateContentConfig(
+        config=types.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=100
         )
@@ -39,6 +40,9 @@ def main():
     
     print("\n--- Temperature = 0.0 (Deterministic) ---")
     response_0 = generate_product_names(temperature=0.0)
+    if isinstance(response_0, str):
+        print(f"Error: {response_0}")
+        return
     print("Raw Response:")
     print(response_0.text)
     
@@ -50,6 +54,9 @@ def main():
     
     print("\n--- Temperature = 1.0 (Balanced) ---")
     response_1 = generate_product_names(temperature=1.0)
+    if isinstance(response_1, str):
+        print(f"Error: {response_1}")
+        return
     print("Raw Response:")
     print(response_1.text)
     
@@ -61,6 +68,9 @@ def main():
     
     print("\n--- Temperature = 1.5 (Creative/Random) ---")
     response_15 = generate_product_names(temperature=1.5)
+    if isinstance(response_15, str):
+        print(f"Error: {response_15}")
+        return
     print("Raw Response:")
     print(response_15.text)
     
