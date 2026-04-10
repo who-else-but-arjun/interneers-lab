@@ -106,7 +106,11 @@ STRICT REQUIREMENTS:
 5. Use realistic Indian market prices (INR) for all products.
 6. Use realistic brand names that exist in the real world.
 
-Return ONLY the JSON object, no markdown formatting, no extra text.'''
+CRITICAL OUTPUT RULES:
+- Return ONLY the raw JSON object
+- NO markdown code blocks (no ```json or ```)
+- NO markdown formatting of any kind
+- NO extra text before or after the JSON'''
         
         try:
             response = client.models.generate_content(
