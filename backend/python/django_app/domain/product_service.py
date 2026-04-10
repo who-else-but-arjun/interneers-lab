@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional
 from django_app.domain.product import (
     Product,
     validate_product_data,
@@ -14,16 +14,12 @@ def set_repository(repository: ProductRepository) -> None:
     _repo = repository
 
 
-def _ensure_repo() -> None:
+def _ensure_repo():
     if _repo is None:
         raise RuntimeError("Product repository not initialized; ensure Django app is loaded.")
 
 
-def create(data: Dict[str, Any]) -> Tuple[Optional[Product], Optional[Dict[str, Any]]]:
-    """
-    Create a product, or if one with the same logical identity already exists,
-    increment its quantity instead of inserting a duplicate row.
-    """
+def create(data: dict) -> tuple[Optional[Product], Optional[dict]]:
     _ensure_repo()
     ok, errors = validate_product_data(data, for_update=False)
     if not ok:
@@ -65,7 +61,7 @@ def create(data: Dict[str, Any]) -> Tuple[Optional[Product], Optional[Dict[str, 
     return product, None
 
 
-def create_many(items: List[Dict[str, Any]]) -> Tuple[List[Product], List[Dict[str, Any]]]:
+def create_many(items: list) -> tuple[list[Product], list[dict]]:
     created = []
     errors = []
     for i, data in enumerate(items):
@@ -86,13 +82,13 @@ def get_by_id(product_id: str) -> Optional[Product]:
 
 
 def list_products(
-    page: int = 1, page_size: int = 10, category_ids: Optional[List[str]] = None
-) -> Tuple[List[Product], int]:
+    page: int = 1, page_size: int = 10, category_ids: list[str] | None = None
+) -> tuple[list[Product], int]:
     _ensure_repo()
     return _repo.list_products(page=page, page_size=page_size, category_ids=category_ids)
 
 
-def update(product_id: str, data: Dict[str, Any]) -> Tuple[Optional[Product], Optional[Dict[str, Any]]]:
+def update(product_id: str, data: dict) -> tuple[Optional[Product], Optional[dict]]:
     _ensure_repo()
     existing = _repo.get_by_id(product_id)
     if not existing:

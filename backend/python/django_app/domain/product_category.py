@@ -1,5 +1,4 @@
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, Tuple
 
 
 @dataclass
@@ -8,12 +7,12 @@ class ProductCategory:
     title: str
     description: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         return asdict(self)
 
 
-def validate_category_data(data: Dict[str, Any], for_update: bool = False) -> Tuple[bool, Dict[str, str]]:
-    errors: Dict[str, str] = {}
+def validate_category_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:
+    errors = {}
     if not for_update:
         title = (data.get("title") or "").strip()
         if not title:
