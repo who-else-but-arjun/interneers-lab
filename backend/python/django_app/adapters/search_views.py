@@ -1,8 +1,7 @@
 import hashlib
 import json
-import time
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
@@ -10,21 +9,33 @@ from django_app.domain import product_service
 from django_app.domain.semantic_search import semantic_search
 from django_app.adapters.product_views import _product_to_dict
 
-_PRODUCT_CACHE_TTL = 60
+_cached_product_dicts: list = []
 
-_cached_product_dicts = []
-_cached_at = 0.0
+
+def _build_search_index() -> None:
+    """Build semantic search index on startup. Called from apps.py ready()."""
+    global _cached_product_dicts
+    all_products = []
+    page = 1
+    page_size = 1000
+    while True:
+        products, total = product_service.list_products(page=page, page_size=page_size, category_ids=None)
+        all_products.extend(products)
+        if len(all_products) >= total or len(products) < page_size:
+            break
+        page += 1
+    _cached_product_dicts = [_product_to_dict(p) for p in all_products]
+    semantic_search.index_products(_cached_product_dicts)
 
 
 def _get_product_dicts() -> list:
-    global _cached_product_dicts, _cached_at
-    if time.time() - _cached_at < _PRODUCT_CACHE_TTL and _cached_product_dicts:
-        return _cached_product_dicts
-    products, _ = product_service.list_products(page=1, page_size=1000, category_ids=None)
-    _cached_product_dicts = [_product_to_dict(p) for p in products]
-    _cached_at = time.time()
-    semantic_search.index_products(_cached_product_dicts)
+    """Get cached product dicts. Index must be built via _build_search_index() on startup."""
     return _cached_product_dicts
+
+
+def invalidate_product_cache() -> None:
+    """Invalidate and rebuild product cache. Call when products are added/updated/deleted."""
+    _build_search_index()
 
 
 @csrf_protect
@@ -40,19 +51,21 @@ def semantic_search_products(request):
             return JsonResponse({"error": "Query is required"}, status=400)
 
         product_dicts = _get_product_dicts()
+        results = semantic_search.search(query, top_k=len(product_dicts))
 
         if category_filter:
-            filtered = [p for p in product_dicts if p.get("category") == category_filter]
-            semantic_search.index_products(filtered)
-            results = semantic_search.search(query, top_k=top_k)
-            semantic_search.index_products(product_dicts)
-        else:
-            results = semantic_search.search(query, top_k=top_k)
+            results = [(p, s) for p, s in results if p.get("category") == category_filter]
+
+        results = results[:top_k]
 
         return JsonResponse({
             "query":         query,
             "results":       [
-                {"product": product, "similarity_score": round(float(score), 4)}
+                {
+                    "product_id": product.get("id"),
+                    "product": product,
+                    "similarity_score": round(float(score), 4)
+                }
                 for product, score in results
             ],
             "total_results": len(results),
@@ -64,7 +77,7 @@ def semantic_search_products(request):
 
 @csrf_protect
 @require_http_methods(["POST"])
-def find_similar_products(request):
+def find_similar_products(request: HttpRequest) -> JsonResponse:
     try:
         data       = json.loads(request.body)
         product_id = data.get("product_id", "").strip()
