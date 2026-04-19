@@ -31,6 +31,8 @@ def _parse_category_ids(param: str) -> list[str] | None:
     ids = [x.strip() for x in param.split(",") if x.strip()]
     return ids if ids else None
 
+def _product_to_dict(product) -> dict:
+    return product.to_dict()
 
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
