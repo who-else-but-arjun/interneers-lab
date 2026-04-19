@@ -21,6 +21,11 @@ from django_app.adapters.ai_inventory_views import (
     ai_scenario_dashboard,
     ai_generate_products,
 )
+from django_app.adapters.search_views import (
+    semantic_search_products,
+    find_similar_products,
+    hybrid_search,
+)
 
 urlpatterns = [
     # HTML UI
@@ -31,6 +36,11 @@ urlpatterns = [
     # AI Scenario Selector (Week 6 Advanced)
     path("ai/scenarios/", ai_scenario_dashboard, name="ai_scenario_dashboard"),
     path("ai/generate/", ai_generate_products, name="ai_generate_products"),
+
+    # Semanctic search (Week 7)
+    path("search/semantic/", semantic_search_products, name="semantic_search"),
+    path("search/similar/", find_similar_products, name="find_similar"),
+    path("search/hybrid/", hybrid_search, name="hybrid_search"),
 
     # API Endpoints
     path("admin/", admin.site.urls),
