@@ -41,3 +41,7 @@ class DjangoAppConfig(AppConfig):
             for doc in ProductDocument.objects(Q(category_id=None) | Q(category_id__exists=False)):
                 doc.category_id = uncat.id
                 doc.save()
+
+        # Build semantic search index on startup
+        from django_app.adapters.search_views import _build_search_index
+        _build_search_index()

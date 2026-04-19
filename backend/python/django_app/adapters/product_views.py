@@ -6,6 +6,11 @@ from django_app.domain import product_service
 from typing import Optional, Dict, Any, Tuple, List
 
 
+def _invalidate_search_cache() -> None:
+    from django_app.adapters.search_views import invalidate_product_cache
+    invalidate_product_cache()
+
+
 def _parse_json_body(request: HttpRequest) -> Optional[Dict[str, Any]]:
     try:
         return json.loads(request.body.decode("utf-8")) if request.body else {}
@@ -55,6 +60,7 @@ def product_list(request: HttpRequest) -> JsonResponse:
     product, errors = product_service.create(body)
     if errors:
         return _error_response("Validation failed", details=errors, status=400)
+    _invalidate_search_cache()
     return JsonResponse(product.to_dict(), status=201)
 
 
@@ -67,6 +73,8 @@ def product_bulk_create(request: HttpRequest) -> JsonResponse:
     if not isinstance(body, list):
         return _error_response("Body must be a JSON array of product objects", status=400)
     created, errors = product_service.create_many(body)
+    if created:
+        _invalidate_search_cache()
     total = len(body)
     if errors and len(errors) == total:
         status = 400
@@ -94,6 +102,7 @@ def product_detail(request: HttpRequest, product_id: str) -> JsonResponse:
         return JsonResponse(product.to_dict(), status=200)
     if request.method == "DELETE":
         if product_service.delete(product_id):
+            _invalidate_search_cache()
             return HttpResponse(status=204)
         return _error_response("Product not found", status=404)
     body = _parse_json_body(request)
@@ -104,6 +113,7 @@ def product_detail(request: HttpRequest, product_id: str) -> JsonResponse:
         if errors.get("_error") == "Product not found":
             return _error_response("Product not found", status=404)
         return _error_response("Validation failed", details=errors, status=400)
+    _invalidate_search_cache()
     return JsonResponse(product.to_dict(), status=200)
 
 
@@ -116,6 +126,7 @@ def product_add_to_category(request: HttpRequest, product_id: str) -> JsonRespon
             if errors.get("_error") == "Product not found":
                 return _error_response("Product not found", status=404)
             return _error_response("Validation failed", details=errors, status=400)
+        _invalidate_search_cache()
         return JsonResponse(product.to_dict(), status=200)
     body = _parse_json_body(request)
     if body is None:
@@ -130,6 +141,7 @@ def product_add_to_category(request: HttpRequest, product_id: str) -> JsonRespon
         if errors.get("_error") == "Product not found":
             return _error_response("Product not found", status=404)
         return _error_response("Validation failed", details=errors, status=400)
+    _invalidate_search_cache()
     return JsonResponse(product.to_dict(), status=200)
 
 
@@ -175,6 +187,8 @@ def product_bulk_csv(request: HttpRequest) -> JsonResponse:
                     pass
         items.append(product_data)
     created, errors = product_service.create_many(items)
+    if created:
+        _invalidate_search_cache()
     total = len(items)
     if errors and len(errors) == total:
         status = 400

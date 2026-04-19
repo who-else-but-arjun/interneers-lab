@@ -33,7 +33,7 @@ class SemanticSearchEngine:
 
     def _fingerprint_products(self, products: List[Dict[str, Any]]) -> str:
         key = "|".join(
-            f"{p.get('id')}:{p.get('name')}:{p.get('price')}:{p.get('quantity')}"
+            f"{p.get('id')}:{p.get('name')}:{p.get('description')}:{p.get('category')}:{p.get('brand')}"
             for p in products
         )
         return hashlib.md5(key.encode()).hexdigest()
