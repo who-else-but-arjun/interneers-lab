@@ -32,7 +32,6 @@ def _parse_category_ids(param: str) -> list[str] | None:
     return ids if ids else None
 
 def _product_to_dict(product) -> dict:
-    """Convert product entity to dictionary for search indexing."""
     return product.to_dict()
 
 @require_http_methods(["GET", "POST"])
