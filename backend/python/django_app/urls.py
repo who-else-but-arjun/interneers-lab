@@ -20,13 +20,24 @@ from django_app.adapters.ui_views import (
 from django_app.adapters.ai_inventory_views import (
     ai_scenario_dashboard,
     ai_generate_products,
+    AIInventoryChatListView,
+    AIInventoryChatDetailView,
+    AIInventoryChatSyncView,
 )
 from django_app.adapters.search_views import (
     semantic_search_products,
     find_similar_products,
     hybrid_search,
 )
-
+from django_app.adapters.rag_views import (
+    rag_chat_endpoint,
+    generate_chat_title_endpoint,
+)
+from django_app.adapters.rag_chat_views import (
+    RagChatListView,
+    RagChatDetailView,
+    RagChatSyncView,
+)
 urlpatterns = [
     # HTML UI
     path("", inventory_dashboard, name="inventory_dashboard"),
@@ -36,11 +47,20 @@ urlpatterns = [
     # AI Scenario Selector (Week 6 Advanced)
     path("ai/scenarios/", ai_scenario_dashboard, name="ai_scenario_dashboard"),
     path("ai/generate/", ai_generate_products, name="ai_generate_products"),
+    path("ai/chats/", AIInventoryChatListView.as_view(), name="ai_inventory_chat_list"),
+    path("ai/chats/sync/", AIInventoryChatSyncView.as_view(), name="ai_inventory_chat_sync"),
+    path("ai/chats/<str:chat_id>/", AIInventoryChatDetailView.as_view(), name="ai_inventory_chat_detail"),
 
     # Semanctic search (Week 7)
     path("search/semantic/", semantic_search_products, name="semantic_search"),
     path("search/similar/", find_similar_products, name="find_similar"),
     path("search/hybrid/", hybrid_search, name="hybrid_search"),
+
+    path("rag/chat/", rag_chat_endpoint, name="rag_chat"),
+    path("rag/generate-title/", generate_chat_title_endpoint, name="generate_chat_title"),
+    path("rag/chats/", RagChatListView.as_view(), name="rag_chat_list"),
+    path("rag/chats/sync/", RagChatSyncView.as_view(), name="rag_chat_sync"),
+    path("rag/chats/<str:chat_id>/", RagChatDetailView.as_view(), name="rag_chat_detail"),
 
     # API Endpoints
     path("admin/", admin.site.urls),
