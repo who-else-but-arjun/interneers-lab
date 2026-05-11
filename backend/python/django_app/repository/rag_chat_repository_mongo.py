@@ -17,12 +17,15 @@ class RagChatRepositoryMongo:
         } for chat in chats]
     
     @staticmethod
-    def create_chat(session_id: str, title: str = "New Chat") -> Dict[str, Any]:
-        chat = RagChatDocument(
-            session_id=session_id,
-            title=title,
-            messages=[]
-        )
+    def create_chat(session_id: str, title: str = "New Chat", chat_id: str = None) -> Dict[str, Any]:
+        kwargs = {
+            'session_id': session_id,
+            'title': title,
+            'messages': []
+        }
+        if chat_id:
+            kwargs['id'] = chat_id
+        chat = RagChatDocument(**kwargs)
         chat.save()
         return {
             'id': str(chat.id),

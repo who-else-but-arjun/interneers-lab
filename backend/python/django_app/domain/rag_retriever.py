@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import functools
 import hashlib
+import json
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from django.conf import settings
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langsmith import traceable
+
+from django_app.domain.product_service import list_products
 
 SENTENCE_WINDOW = 2
 RETRIEVE_K      = 6
@@ -20,19 +27,31 @@ MMR_LAMBDA      = 0.55
 PRODUCT_TTL     = 300
 PERSIST_DIR     = "./chroma_db"
 
-_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+_store_lock = threading.Lock()
 
-_semantic_splitter = SemanticChunker(
-    embeddings=_embeddings,
-    breakpoint_threshold_type="percentile",
-    breakpoint_threshold_amount=85,
-)
+@functools.lru_cache(maxsize=1)
+def _get_embeddings() -> HuggingFaceEmbeddings:
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-_para_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50,
-    separators=["\n\n", "\n", ". ", " ", ""],
-)
+@functools.lru_cache(maxsize=1)
+def _get_semantic_splitter() -> SemanticChunker:
+    return SemanticChunker(
+        embeddings=_get_embeddings(),
+        breakpoint_threshold_type="percentile",
+        breakpoint_threshold_amount=85,
+    )
+
+@functools.lru_cache(maxsize=1)
+def _get_para_splitter() -> RecursiveCharacterTextSplitter:
+    return RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50,
+        separators=["\n\n", "\n", ". ", " ", ""],
+    )
+
+_embeddings = _get_embeddings()
+_semantic_splitter = _get_semantic_splitter()
+_para_splitter = _get_para_splitter()
 
 _store: Optional[Chroma] = None
 _product_built_at: float  = 0.0
@@ -45,8 +64,8 @@ def _fingerprint(docs: List[Document]) -> str:
 
 
 def _cheap_product_fingerprint() -> str:
+    global _product_hash
     try:
-        from django_app.domain.product_service import list_products
         products, _ = list_products(page=1, page_size=1000)
         key = "|".join(
             f"{p.id}:{p.name}:{p.price}:{p.quantity}"
@@ -55,7 +74,7 @@ def _cheap_product_fingerprint() -> str:
         return hashlib.md5(key.encode()).hexdigest()
     except Exception as exc:
         print(f"[retriever] cheap fingerprint failed: {exc}")
-        return str(time.time())
+        return _product_hash
 
 
 def _prepend_header(text: str, header: str) -> str:
@@ -63,10 +82,10 @@ def _prepend_header(text: str, header: str) -> str:
 
 
 def _build_sentence_window_docs(sentences: List[str], base_metadata: dict) -> List[Document]:
-    import json
     docs = []
     header = base_metadata.get("type", "Document")
     serialized = json.dumps(sentences)
+    semantic_splitter = _get_semantic_splitter()
     for i, sentence in enumerate(sentences):
         docs.append(Document(
             page_content=_prepend_header(sentence.strip(), header),
@@ -76,7 +95,6 @@ def _build_sentence_window_docs(sentences: List[str], base_metadata: dict) -> Li
 
 
 def _expand_window(doc: Document) -> Document:
-    import json
     raw = doc.metadata.get("all_sentences")
     if not raw:
         return doc
@@ -94,9 +112,9 @@ def _expand_window(doc: Document) -> Document:
 
 
 def _load_text_docs() -> List[Document]:
-    from django.conf import settings
     docs_dir = os.path.join(settings.BASE_DIR, "django_app", "static", "docs")
     docs = []
+    semantic_splitter = _get_semantic_splitter()
     for filename, doc_type in [
         ("product_manual.txt", "Product Manual"),
         ("return_policy.txt",  "Return Policy"),
@@ -108,16 +126,17 @@ def _load_text_docs() -> List[Document]:
         with open(path, encoding="utf-8") as f:
             content = f.read()
         base_meta = {"source": filename, "type": doc_type}
-        semantic_chunks = _semantic_splitter.split_text(content)
+        semantic_chunks = semantic_splitter.split_text(content)
         docs.extend(_build_sentence_window_docs(semantic_chunks, base_meta))
     return docs
 
 
 def _load_product_docs() -> List[Document]:
     try:
-        from django_app.domain.product_service import list_products
         products, _ = list_products(page=1, page_size=1000)
         docs = []
+        semantic_splitter = _get_semantic_splitter()
+        para_splitter = _get_para_splitter()
         for p in products:
             policy  = p.policy or {}
             content = _prepend_header(
@@ -134,8 +153,8 @@ def _load_product_docs() -> List[Document]:
                 "product_id": str(p.id), "product_name": p.name,
                 "category": p.category, "price": float(p.price), "quantity": int(p.quantity),
             }
-            semantic_chunks = _semantic_splitter.split_text(content)
-            chunks = semantic_chunks if len(semantic_chunks) > 1 else _para_splitter.split_text(content)
+            semantic_chunks = semantic_splitter.split_text(content)
+            chunks = semantic_chunks if len(semantic_chunks) > 1 else para_splitter.split_text(content)
             for chunk in chunks:
                 docs.append(Document(page_content=chunk, metadata=meta))
         return docs
@@ -147,9 +166,9 @@ def _load_product_docs() -> List[Document]:
 def _refresh_product_cache() -> None:
     global _cached_products
     try:
-        from django_app.domain.product_service import list_products
         products, _ = list_products(page=1, page_size=1000)
-        _cached_products = products
+        with _store_lock:
+            _cached_products = products
     except Exception as exc:
         print(f"[retriever] product cache refresh failed: {exc}")
 
@@ -157,37 +176,39 @@ def _refresh_product_cache() -> None:
 def get_vector_store(force_rebuild: bool = False) -> Optional[Chroma]:
     global _store, _product_built_at, _product_hash
 
-    if _store is None or force_rebuild:
-        product_docs      = _load_product_docs()
-        all_docs          = _load_text_docs() + product_docs
-        _store            = Chroma.from_documents(all_docs, _embeddings, persist_directory=PERSIST_DIR)
-        _product_built_at = time.time()
-        _product_hash     = _cheap_product_fingerprint()
-        _refresh_product_cache()
+    with _store_lock:
+        if _store is None or force_rebuild:
+            embeddings = _get_embeddings()
+            product_docs      = _load_product_docs()
+            all_docs          = _load_text_docs() + product_docs
+            _store            = Chroma.from_documents(all_docs, embeddings, persist_directory=PERSIST_DIR)
+            _product_built_at = time.time()
+            _product_hash     = _cheap_product_fingerprint()
+            _refresh_product_cache()
+            return _store
+
+        if time.time() - _product_built_at <= PRODUCT_TTL:
+            return _store
+
+        current_hash = _cheap_product_fingerprint()
+        if current_hash == _product_hash:
+            _product_built_at = time.time()
+            return _store  # products unchanged; cache still valid
+
+        try:
+            product_docs = _load_product_docs()
+            existing     = _store.get(where={"source": "product_db"})
+            if existing.get("ids"):
+                _store.delete(ids=existing["ids"])
+            if product_docs:
+                _store.add_documents(product_docs)
+            _product_built_at = time.time()
+            _product_hash     = current_hash
+            _refresh_product_cache()
+        except Exception as exc:
+            print(f"[retriever] product refresh failed: {exc}")
+
         return _store
-
-    if time.time() - _product_built_at <= PRODUCT_TTL:
-        return _store
-
-    current_hash = _cheap_product_fingerprint()
-    if current_hash == _product_hash:
-        _product_built_at = time.time()
-        return _store  # products unchanged; cache still valid
-
-    try:
-        product_docs = _load_product_docs()
-        existing     = _store.get(where={"source": "product_db"})
-        if existing.get("ids"):
-            _store.delete(ids=existing["ids"])
-        if product_docs:
-            _store.add_documents(product_docs)
-        _product_built_at = time.time()
-        _product_hash     = current_hash
-        _refresh_product_cache()
-    except Exception as exc:
-        print(f"[retriever] product refresh failed: {exc}")
-
-    return _store
 
 
 def _dedup(docs: List[Document]) -> List[Document]:
@@ -269,8 +290,6 @@ def retrieve(queries) -> RetrievalResult:
     docs: List[Document] = []
 
     if store:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-
         def _search(q: str) -> List[Document]:
             try:
                 return store.max_marginal_relevance_search(
@@ -298,7 +317,6 @@ def retrieve(queries) -> RetrievalResult:
 
 def get_inventory_stats() -> Dict:
     try:
-        from django_app.domain.product_service import list_products
         products, total_count = list_products(page=1, page_size=1000)
         if not products:
             return {}

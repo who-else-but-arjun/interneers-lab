@@ -1,11 +1,13 @@
 import uuid
-from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, field_serializer
 
-@dataclass
-class Product:
+
+class Product(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     description: str
@@ -18,24 +20,20 @@ class Product:
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    def to_dict(self):
-        d = {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'category': self.category,
-            'price': self.price,
-            'brand': self.brand,
-            'quantity': self.quantity,
-            'policy': dict(self.policy) if hasattr(self.policy, 'to_mongo') else self.policy,
-            'category_id': self.category_id,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
-        }
-        for k in ("created_at", "updated_at"):
-            if d.get(k) is not None:
-                d[k] = d[k].isoformat() + "Z" if d[k].tzinfo is None else d[k].isoformat()
-        return d
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.isoformat() + "Z"
+        return value.isoformat()
+
+    @field_serializer("policy")
+    def serialize_policy(self, value: dict) -> dict:
+        return dict(value) if hasattr(value, "to_mongo") else value
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json")
 
 
 def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:

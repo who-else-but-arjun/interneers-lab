@@ -83,14 +83,21 @@ class RagChatSyncView(View):
                 messages = chat.get("messages", [])
                 title    = chat.get("title", "New Chat")
 
-                existing = RagChatRepositoryMongo.get_chat(chat_id, session_id)
-                if existing:
-                    RagChatRepositoryMongo.update_chat(chat_id, session_id, messages, title)
-                else:
-                    new_chat = RagChatRepositoryMongo.create_chat(session_id, title)
-                    RagChatRepositoryMongo.update_chat(new_chat["id"], session_id, messages, title)
+                if not chat_id:
+                    continue
 
-                synced_count += 1
+                try:
+                    existing = RagChatRepositoryMongo.get_chat(chat_id, session_id)
+                    if existing:
+                        RagChatRepositoryMongo.update_chat(chat_id, session_id, messages, title)
+                    else:
+                        RagChatRepositoryMongo.create_chat(session_id, title, chat_id=chat_id)
+                        RagChatRepositoryMongo.update_chat(chat_id, session_id, messages, title)
+
+                    synced_count += 1
+                except Exception as chat_exc:
+                    print(f"[sync] Failed to sync chat {chat_id}: {chat_exc}")
+                    continue
 
             return JsonResponse({"success": True, "synced_count": synced_count})
 

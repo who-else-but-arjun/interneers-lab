@@ -19,8 +19,8 @@ def generate_chat_title_endpoint(request):
 
         return JsonResponse({"success": True, "title": generate_chat_title(message)})
 
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    except json.JSONDecodeError as e:
+        return JsonResponse({"success": False, "error": f"Invalid JSON: {e}"}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
@@ -52,7 +52,7 @@ def rag_chat_endpoint(request):
             "trace_url": trace_url,
         })
 
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    except json.JSONDecodeError as e:
+        return JsonResponse({"success": False, "error": f"Invalid JSON: {e}"}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
