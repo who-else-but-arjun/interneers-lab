@@ -1,18 +1,19 @@
 import json
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django_app.domain import product_category_service, product_service
+from typing import Optional, Dict, Any, List
 
 
-def _parse_json_body(request):
+def _parse_json_body(request: HttpRequest) -> Optional[Dict[str, Any]]:
     try:
         return json.loads(request.body.decode("utf-8")) if request.body else {}
     except (json.JSONDecodeError, AttributeError):
         return None
 
 
-def _error_response(message: str, details: dict = None, status: int = 400):
+def _error_response(message: str, details: Optional[Dict[str, Any]] = None, status: int = 400) -> JsonResponse:
     payload = {"error": message}
     if details:
         payload["details"] = details
@@ -21,7 +22,7 @@ def _error_response(message: str, details: dict = None, status: int = 400):
 
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
-def category_list(request):
+def category_list(request: HttpRequest) -> JsonResponse:
     if request.method == "GET":
         items = product_category_service.list_all()
         return JsonResponse({"items": [c.to_dict() for c in items]}, status=200)
@@ -36,7 +37,7 @@ def category_list(request):
 
 @require_http_methods(["GET", "PUT", "PATCH", "DELETE"])
 @csrf_exempt
-def category_detail(request, category_id):
+def category_detail(request: HttpRequest, category_id: str) -> JsonResponse:
     if request.method == "GET":
         category = product_category_service.get_by_id(category_id)
         if not category:
@@ -59,12 +60,12 @@ def category_detail(request, category_id):
 
 @require_http_methods(["GET"])
 @csrf_exempt
-def category_products(request, category_id):
+def category_products(request: HttpRequest, category_id: str) -> JsonResponse:
     try:
         page = max(1, int(request.GET.get("page", 1)))
-        page_size = min(100, max(1, int(request.GET.get("page_size", 5))))
+        page_size = min(100, max(1, int(request.GET.get("page_size", 10))))
     except (TypeError, ValueError):
-        page, page_size = 1, 5
+        page, page_size = 1, 10
     category = product_category_service.get_by_id(category_id)
     if not category:
         return _error_response("Category not found", status=404)

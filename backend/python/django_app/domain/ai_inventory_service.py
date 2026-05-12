@@ -79,9 +79,6 @@ Examples of chat intent:
 - "How many products do I have?" (use inventory data above)
 - "What's my total inventory value?" (use inventory data above)
 
-IMPORTANT: For ANY questions about policies, warranties, returns, refunds, or vendor FAQs, you MUST respond with chat intent and say:
-"I can only help with generating products. For policy questions, please use the RAG Chat assistant."
-
 Respond with ONLY a valid JSON object in this exact format:
 {{
     "intent": "product_generation" or "chat",
@@ -96,11 +93,6 @@ Each product must have these exact fields:
 - price: float (INR - realistic)
 - brand: string
 - quantity: integer
-- policy: object with:
-  * warranty_period: string (e.g., "2 years", "1 year", "6 months")
-  * return_window: string (e.g., "30 days", "7 days")
-  * refund_policy: string (e.g., "Full refund within 30 days", "Exchange only")
-  * vendor_faq_link: string (URL or empty)
 
 STRICT REQUIREMENTS:
 1. **PRIORITY - CHECK USER MESSAGE FOR QUANTITY**: Before using the "Maximum products to generate" value above, CHECK if the user explicitly mentioned a number in their message. 
@@ -113,9 +105,6 @@ STRICT REQUIREMENTS:
 4. Do NOT generate just 1 product when the user asks for multiple. Always match the requested quantity.
 5. Use realistic Indian market prices (INR) for all products.
 6. Use realistic brand names that exist in the real world.
-
-When user asks about policies, warranties, returns, or refunds, ALWAYS redirect them to the RAG Chat.
-Return ONLY the JSON object, no markdown formatting, no extra text.
 
 CRITICAL OUTPUT RULES:
 - Return ONLY the raw JSON object

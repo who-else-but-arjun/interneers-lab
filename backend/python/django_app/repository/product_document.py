@@ -1,5 +1,5 @@
 from datetime import datetime
-from mongoengine import Document, ObjectIdField, StringField, FloatField, IntField, DateTimeField, DictField
+from mongoengine import Document, ObjectIdField, StringField, FloatField, IntField, DateTimeField
 
 
 class ProductDocument(Document):
@@ -11,6 +11,5 @@ class ProductDocument(Document):
     price = FloatField(required=True)
     brand = StringField(default="")
     quantity = IntField(required=True)
-    policy = DictField(default=dict)
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)

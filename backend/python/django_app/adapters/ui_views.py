@@ -1,16 +1,16 @@
 import csv
 import io
 import json
-import urllib.parse
 from decimal import Decimal
-from typing import Optional, Dict, Any, List
 
+from django.contrib import messages
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from django_app.domain import product_service, product_category_service, stock_event_service
+from django_app.domain import product_service, product_category_service
+from typing import Optional, Dict, Any, List
 
 
 LOW_STOCK_THRESHOLD = 5
@@ -118,18 +118,14 @@ def _build_dashboard_context(
     selected_brands: List[str],
     selected_product_ids: List[str],
     form_errors: Optional[Dict[str, str]],
-    success_message: Optional[str],
-    stock_events: List,
-    stock_events_total: int,
-    upcoming_events: List,
-    stock_events_summary: dict
+    success_message: Optional[str]
 ) -> Dict[str, Any]:
     """Build template context for dashboard."""
     brand_options = sorted({p.brand for p in products_all if p.brand})
     product_options = products_all
 
     total_quantity = sum(p.quantity for p in products)
-    total_value = sum(Decimal(str(p.price or 0)) * Decimal(str(p.quantity or 0)) for p in products)
+    total_value = sum((p.price or Decimal('0')) * (p.quantity or Decimal('0')) for p in products)
     low_stock_products = [p for p in products if (p.quantity or 0) <= LOW_STOCK_THRESHOLD]
 
     chart_labels = [p.name for p in products]
@@ -152,11 +148,6 @@ def _build_dashboard_context(
         "selected_product_ids": selected_product_ids,
         "low_stock_products": low_stock_products,
         "low_stock_threshold": LOW_STOCK_THRESHOLD,
-        # Stock events context
-        "stock_events": stock_events,
-        "stock_events_total": stock_events_total,
-        "upcoming_events": upcoming_events,
-        "stock_events_summary": stock_events_summary,
     }
 
 
@@ -192,19 +183,10 @@ def inventory_dashboard(request: HttpRequest) -> HttpResponse:
 
     products = _apply_filters(products_all, selected_category_ids, selected_brands, selected_product_ids)
 
-    # Get stock events data
-    stock_events, stock_events_total = stock_event_service.list_events(page=1, page_size=50)
-    upcoming_events = stock_event_service.get_upcoming_events(days=30)
-    stock_events_summary = stock_event_service.get_event_summary()
-
     context = _build_dashboard_context(
         products, products_all, categories,
         selected_category_ids, selected_brands, selected_product_ids,
-        form_errors, success_message,
-        [e.to_dict() for e in stock_events],
-        stock_events_total,
-        [e.to_dict() for e in upcoming_events[:10]],
-        stock_events_summary
+        form_errors, success_message
     )
     return render(request, "django_app/inventory_dashboard.html", context)
 
@@ -227,7 +209,8 @@ def ui_export_products(request: HttpRequest) -> HttpResponse:
     """
     ids = request.POST.getlist("selected_product")
     if not ids:
-        return redirect(f"/?toast_error={urllib.parse.quote('No products selected for export.')}")
+        messages.error(request, "No products selected for export.")
+        return redirect("inventory_dashboard")
 
     products: List = []
     for pid in ids:
@@ -236,7 +219,8 @@ def ui_export_products(request: HttpRequest) -> HttpResponse:
             products.append(p)
 
     if not products:
-        return redirect(f"/?toast_error={urllib.parse.quote('Selected products no longer exist.')}")
+        messages.error(request, "Selected products no longer exist.")
+        return redirect("inventory_dashboard")
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -260,3 +244,4 @@ def ui_export_products(request: HttpRequest) -> HttpResponse:
     response = HttpResponse(buffer.getvalue(), content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="inventory_export.csv"'
     return response
+

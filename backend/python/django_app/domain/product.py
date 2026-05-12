@@ -1,13 +1,11 @@
 import uuid
+from dataclasses import dataclass, asdict
 from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, field_serializer
+from typing import Optional, Dict, Any, Tuple
 
 
-class Product(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+@dataclass
+class Product:
     id: str
     name: str
     description: str
@@ -15,29 +13,20 @@ class Product(BaseModel):
     price: float
     brand: str
     quantity: int
-    policy: dict
     category_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    @field_serializer("created_at", "updated_at")
-    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
-        if value is None:
-            return None
-        if value.tzinfo is None:
-            return value.isoformat() + "Z"
-        return value.isoformat()
-
-    @field_serializer("policy")
-    def serialize_policy(self, value: dict) -> dict:
-        return dict(value) if hasattr(value, "to_mongo") else value
-
-    def to_dict(self) -> dict:
-        return self.model_dump(mode="json")
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        for k in ("created_at", "updated_at"):
+            if d.get(k) is not None:
+                d[k] = d[k].isoformat() + "Z" if d[k].tzinfo is None else d[k].isoformat()
+        return d
 
 
-def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:
-    errors = {}
+def validate_product_data(data: Dict[str, Any], for_update: bool = False) -> Tuple[bool, Dict[str, str]]:
+    errors: Dict[str, str] = {}
     if not for_update:
         name = (data.get("name") or "").strip()
         if not name:
@@ -86,7 +75,7 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
 
 
 def product_from_dict(
-    data: dict,
+    data: Dict[str, Any],
     id: Optional[str] = None,
     category_id: Optional[str] = None,
     created_at: Optional[datetime] = None,
@@ -104,12 +93,6 @@ def product_from_dict(
         price=float(data.get("price", 0)),
         brand=(data.get("brand") or "").strip(),
         quantity=int(data.get("quantity", 0)),
-        policy=data.get("policy") or {
-            "warranty_period": "",
-            "return_window": "",
-            "refund_policy": "",
-            "vendor_faq_link": ""
-        },
         created_at=created_at,
         updated_at=updated_at,
     )

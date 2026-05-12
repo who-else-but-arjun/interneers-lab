@@ -1,5 +1,6 @@
 from bson import ObjectId
 from mongoengine import DoesNotExist
+from typing import Optional, Dict, Any, List
 
 from django_app.domain.product_category import ProductCategory
 from django_app.repository.category_document import ProductCategoryDocument
@@ -15,7 +16,7 @@ def _doc_to_category(doc: ProductCategoryDocument) -> ProductCategory:
 
 
 class MongoProductCategoryRepository(ProductCategoryRepository):
-    def create(self, data: dict) -> ProductCategory:
+    def create(self, data: Dict[str, Any]) -> ProductCategory:
         doc = ProductCategoryDocument(
             title=(data.get("title") or "").strip(),
             description=(data.get("description") or "").strip(),
@@ -24,18 +25,18 @@ class MongoProductCategoryRepository(ProductCategoryRepository):
         doc.reload()
         return _doc_to_category(doc)
 
-    def get_by_id(self, category_id: str) -> ProductCategory | None:
+    def get_by_id(self, category_id: str) -> Optional[ProductCategory]:
         try:
             doc = ProductCategoryDocument.objects.get(id=ObjectId(category_id))
             return _doc_to_category(doc)
         except (DoesNotExist, TypeError, ValueError):
             return None
 
-    def list_all(self) -> list[ProductCategory]:
+    def list_all(self) -> List[ProductCategory]:
         docs = ProductCategoryDocument.objects.all()
         return [_doc_to_category(d) for d in docs]
 
-    def update(self, category_id: str, data: dict) -> ProductCategory | None:
+    def update(self, category_id: str, data: Dict[str, Any]) -> Optional[ProductCategory]:
         try:
             doc = ProductCategoryDocument.objects.get(id=ObjectId(category_id))
         except (DoesNotExist, TypeError, ValueError):

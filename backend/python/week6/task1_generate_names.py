@@ -2,7 +2,7 @@ import google.genai as genai
 from google.genai import types
 import os
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY ='AIzaSyBY6jxbMS24mhhPtZ_egcl2RVZayrZIKgg'
 
 def generate_product_names(temperature=0.0):
     if not GEMINI_API_KEY:

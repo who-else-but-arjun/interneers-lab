@@ -25,7 +25,6 @@ class ProductModel(BaseModel):
     category_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
-    policy: Optional[dict] = Field(default_factory=dict)
 
     @validator('price')
     def price_must_be_positive(cls, v):

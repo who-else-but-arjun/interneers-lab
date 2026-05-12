@@ -1,11 +1,12 @@
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django_app.domain.hello import get_greeting
+from typing import Optional
 
 
-def _get_name_from_request(request):
+def _get_name_from_request(request: HttpRequest) -> Optional[str]:
     if request.method == "GET":
         return request.GET.get("name", "").strip() or None
     try:
@@ -17,7 +18,7 @@ def _get_name_from_request(request):
 # this is a View function
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
-def hello_name(request):
+def hello_name(request: HttpRequest) -> JsonResponse:
     name = _get_name_from_request(request)
     print(name)
     message = get_greeting(name or "")
