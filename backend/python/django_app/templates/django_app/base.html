@@ -4,32 +4,29 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Inventory Dashboard — Rippling Style{% endblock %}</title>
+    <title>{% block title %}Inventory Dashboard — Rippling{% endblock %}</title>
 
-    <!-- Inter font to match provided HTML design -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     >
 
-    <!-- Chart.js (used on the dashboard page) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
-    <!-- Custom CSS mirroring the standalone HTML -->
-    <link rel="stylesheet" href="{% static 'django_app/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'django_app/css/styles.css' %}">
+
+    {% block extra_css %}{% endblock %}
+    
+    <link rel="icon" type="image/svg+xml" href="{% static 'django_app/icon/icon.svg' %}">
   </head>
   <body>
-    <!-- NAV -->
     <nav class="nav">
       <div class="nav-logo">
         <img src="{% static 'django_app/icon/icon.svg' %}" alt="Inventory OS">
       </div>
       <div class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
         </svg>
         Inventory
       </div>
@@ -43,4 +40,3 @@
     {% block extra_js %}{% endblock %}
   </body>
 </html>
-

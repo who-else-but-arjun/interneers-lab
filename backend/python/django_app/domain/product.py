@@ -1,11 +1,13 @@
 import uuid
-from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, field_serializer
 
-@dataclass
-class Product:
+
+class Product(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     description: str
@@ -13,16 +15,25 @@ class Product:
     price: float
     brand: str
     quantity: int
+    policy: dict
     category_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    def to_dict(self):
-        d = asdict(self)
-        for k in ("created_at", "updated_at"):
-            if d.get(k) is not None:
-                d[k] = d[k].isoformat() + "Z" if d[k].tzinfo is None else d[k].isoformat()
-        return d
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.isoformat() + "Z"
+        return value.isoformat()
+
+    @field_serializer("policy")
+    def serialize_policy(self, value: dict) -> dict:
+        return dict(value) if hasattr(value, "to_mongo") else value
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json")
 
 
 def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, dict]:
@@ -42,7 +53,7 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
             price = float(data["price"])
             if price <= 0:
                 errors["price"] = "Price must be greater than 0"
-        except (TypeError, ValueError):
+        except Exception:
             errors["price"] = "Price must be a valid number greater than 0"
 
     if not for_update and "price" not in data:
@@ -50,12 +61,12 @@ def validate_product_data(data: dict, for_update: bool = False) -> tuple[bool, d
 
     if "quantity" in data:
         try:
-            qty = data["quantity"]
-            if not isinstance(qty, int):
-                qty = int(qty)
-            if qty < 0:
+            quantity = data["quantity"]
+            if not isinstance(quantity, int):
+                quantity = int(quantity)
+            if quantity < 0:
                 errors["quantity"] = "Quantity must be 0 or greater"
-        except (TypeError, ValueError):
+        except Exception:
             errors["quantity"] = "Quantity must be a valid non-negative integer"
 
     if not for_update and "quantity" not in data:
@@ -93,6 +104,12 @@ def product_from_dict(
         price=float(data.get("price", 0)),
         brand=(data.get("brand") or "").strip(),
         quantity=int(data.get("quantity", 0)),
+        policy=data.get("policy") or {
+            "warranty_period": "",
+            "return_window": "",
+            "refund_policy": "",
+            "vendor_faq_link": ""
+        },
         created_at=created_at,
         updated_at=updated_at,
     )

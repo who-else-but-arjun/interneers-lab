@@ -1,0 +1,140 @@
+RETURN POLICY - Inventory Management System
+===========================================
+
+Effective Date: March 2026
+Policy Version: 3.1
+
+1. STANDARD RETURN POLICY
+-------------------------
+1.1 Return Window:
+- Most products: 30 days from delivery date
+- Electronics: 15 days from delivery date
+- Perishable items: 7 days from delivery date
+- Custom/Special order items: Non-returnable
+
+1.2 Return Conditions:
+- Product must be unused and in original condition
+- All original packaging, tags, and accessories must be included
+- Proof of purchase (receipt/invoice) is mandatory
+- Products showing signs of wear or damage by customer are not eligible
+
+1.3 Refund Processing:
+- Refunds processed within 5-7 business days after receiving returned item
+- Original payment method will be refunded
+- Shipping charges are non-refundable unless return is due to our error
+- Cash refunds limited to purchases under ₹10,000
+
+2. CATEGORY-SPECIFIC RETURN POLICIES
+------------------------------------
+2.1 Electronics:
+- 15-day return window
+- Must include all original accessories and packaging
+- Software products: Non-returnable if seal is broken
+- Defective electronics: Can be exchanged within 30 days
+
+2.2 Clothing & Apparel:
+- 30-day return window
+- Items must be unworn with original tags attached
+- Intimate apparel: Non-returnable for hygiene reasons
+- Sale items: Exchange only, no refunds
+
+2.3 Furniture:
+- 14-day return window for non-customized items
+- Must be in original condition with no assembly marks
+- Custom furniture: Non-returnable once production begins
+- Delivery charges for furniture returns borne by customer
+
+2.4 Books & Media:
+- 15-day return window
+- Must be in unread condition
+- Digital downloads: Non-refundable after download
+- Educational materials: Exchange only for damaged items
+
+2.5 Home Appliances:
+- 30-day return window
+- Must include all original parts and packaging
+- Installation fees non-refundable
+- Extended warranties remain valid after return
+
+2.6 Toys & Games:
+- 30-day return window
+- Must be unopened for full refund
+- Opened toys: Store credit only
+- Collectible items: Must have original packaging
+
+2.7 Beauty & Personal Care:
+- 14-day return window for unopened products
+- Opened/used beauty products: Non-returnable
+- Damaged/defective items: Exchange within 7 days
+
+3. DAMAGED/DEFECTIVE ITEMS
+--------------------------
+3.1 Reporting Damage:
+- Must be reported within 48 hours of delivery
+- Photographic evidence required
+- Original packaging must be retained for inspection
+
+3.2 Resolution Options:
+- Full refund including shipping
+- Free replacement with expedited shipping
+- Store credit with 10% bonus for inconvenience
+
+3.3 Manufacturer Defects:
+- Covered under manufacturer warranty
+- We facilitate warranty claims with manufacturers
+- Replacement provided if warranty claim approved
+
+4. NON-RETURNABLE ITEMS
+----------------------
+The following items cannot be returned:
+- Gift cards and vouchers
+- Downloadable software and digital content
+- Personal hygiene products (once opened)
+- Customized/personalized products
+- Perishable goods after expiry
+- Items marked as "Final Sale" or "Non-Returnable"
+
+5. RETURN PROCESS
+----------------
+5.1 Initiating Return:
+1. Log into your account and go to order history
+2. Select the item to return and provide reason
+3. Print return label (prepaid for defective items)
+4. Pack item securely in original packaging
+5. Drop off at designated location or schedule pickup
+
+5.2 Return Shipping:
+- Customer pays return shipping for change of mind
+- Prepaid labels provided for defective/damaged items
+- International returns: Customer bears all shipping costs
+
+5.3 Inspection Period:
+- Items inspected within 2 business days of receipt
+- Refund processed within 5 business days of approval
+- Customer notified via email at each stage
+
+6. EXCHANGE POLICY
+------------------
+- Exchanges available for size/color variations
+- Price difference to be paid by customer or refunded as store credit
+- Exchange processed only after receiving returned item
+- Exchange window same as return window for category
+
+7. EXCEPTIONAL CIRCUMSTANCES
+----------------------------
+7.1 Force Majeure:
+- Extended return windows during emergencies
+- Natural disasters: 60-day return window
+- Pandemic situations: Contactless return options available
+
+7.2 Bulk Orders:
+- Orders over ₹100,000: Special return arrangements
+- Business customers: Custom return agreements available
+
+8. CONTACT INFORMATION
+----------------------
+Return Support: returns@inventory-system.com
+Phone: 1-800-RETURNS (24/7 automated, 9AM-6PM live support)
+Live Chat: Available on website during business hours
+
+For policy updates, visit: www.inventory-system.com/return-policy
